@@ -1,0 +1,200 @@
+"use client";
+
+import { memo } from "react";
+import { Handle, type NodeProps, Position } from "@xyflow/react";
+import { Plus, Sparkles } from "lucide-react";
+
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import type { FamilyGraphNode, PersonNodeData } from "@/lib/graph-layout/family-elk";
+import { cn } from "@/lib/utils";
+
+function getInitials(name: string) {
+  return name
+    .replace(/[^a-zA-Z0-9\s]/g, "")
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase())
+    .join("");
+}
+
+function PersonNodeComponent({
+  data,
+  selected,
+}: NodeProps<Extract<FamilyGraphNode, { type: "person" }>>) {
+  const {
+    person,
+    lifespanLabel,
+    kinshipBadge,
+    isClaimedSelf,
+    isFocused,
+    isHighlighted,
+    canEdit,
+    onSelectPerson,
+    onQuickAdd,
+  } = data as PersonNodeData;
+
+  const genderAccent =
+    person.gender === "M"
+      ? "bg-sky-500/12 text-sky-700 dark:text-sky-300 ring-sky-500/30"
+      : person.gender === "F"
+        ? "bg-rose-500/12 text-rose-700 dark:text-rose-300 ring-rose-500/30"
+        : "bg-muted text-muted-foreground ring-border";
+
+  return (
+    <div
+      onClick={() => onSelectPerson(person.id)}
+      className={cn(
+        "group relative w-[236px] min-h-[92px] rounded-xl border bg-card px-3 py-2.5 shadow-xs transition-all cursor-pointer select-none",
+        "hover:border-primary/60 hover:shadow-md",
+        person.isNameUnknown && "border-dashed bg-card/85",
+        (selected || isFocused) && "ring-2 ring-primary border-primary shadow-md",
+        isHighlighted &&
+          "ring-2 ring-primary bg-primary/[0.04] dark:bg-primary/[0.08] border-primary shadow-lg",
+      )}
+    >
+      <Handle
+        type="target"
+        position={Position.Top}
+        className="!w-2 !h-2 !bg-border !border-0 opacity-0"
+      />
+
+      <div className="flex items-start gap-2.5">
+        <Avatar className={cn("h-10 w-10 ring-2 shrink-0 mt-0.5", genderAccent)}>
+          <AvatarImage
+            src={person.avatarUrl ?? undefined}
+            alt={person.displayName}
+          />
+          <AvatarFallback className={cn("text-xs font-semibold", genderAccent)}>
+            {person.isNameUnknown
+              ? "?"
+              : getInitials(person.displayName) || "P"}
+          </AvatarFallback>
+        </Avatar>
+
+        <div className="min-w-0 flex-1 space-y-1">
+          <div className="flex items-start justify-between gap-1">
+            <div className="min-w-0">
+              <p
+                className={cn(
+                  "text-sm font-semibold leading-tight truncate text-card-foreground",
+                  person.isNameUnknown && "italic text-muted-foreground",
+                )}
+                title={person.displayName}
+              >
+                {person.displayName}
+              </p>
+              {(person.nickname || person.nativeName) && (
+                <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                  {person.nickname ? `“${person.nickname}”` : ""}
+                  {person.nickname && person.nativeName ? " · " : ""}
+                  {person.nativeName ?? ""}
+                </p>
+              )}
+            </div>
+
+            {person.bloodGroup && (
+              <span className="shrink-0 rounded bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-rose-600 dark:text-rose-400">
+                {person.bloodGroup}
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between gap-1.5 pt-0.5">
+            <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground truncate">
+              <span
+                className={cn(
+                  "h-1.5 w-1.5 rounded-full shrink-0",
+                  person.isLiving ? "bg-emerald-500" : "bg-muted-foreground/50",
+                )}
+              />
+              {lifespanLabel}
+            </span>
+
+            {isClaimedSelf ? (
+              <span className="inline-flex items-center gap-0.5 rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold text-primary-foreground shrink-0">
+                <Sparkles className="h-2.5 w-2.5" />
+                You
+              </span>
+            ) : kinshipBadge ? (
+              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary truncate max-w-[105px]">
+                {kinshipBadge}
+              </span>
+            ) : null}
+          </div>
+        </div>
+      </div>
+
+      {canEdit && onQuickAdd && (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="absolute -right-2 -top-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity z-20"
+        >
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                title="Quick add relative"
+                className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md hover:scale-105 transition-transform cursor-pointer"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44">
+              <DropdownMenuLabel className="text-xs truncate">
+                Add to {person.displayName}
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => onQuickAdd(person.id, "father")}
+                className="cursor-pointer text-xs"
+              >
+                + Add Father
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onQuickAdd(person.id, "mother")}
+                className="cursor-pointer text-xs"
+              >
+                + Add Mother
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onQuickAdd(person.id, "spouse")}
+                className="cursor-pointer text-xs"
+              >
+                + Add Spouse / Partner
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onQuickAdd(person.id, "sibling")}
+                className="cursor-pointer text-xs"
+              >
+                + Add Sibling
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onQuickAdd(person.id, "child")}
+                className="cursor-pointer text-xs"
+              >
+                + Add Child
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
+
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        className="!w-2 !h-2 !bg-border !border-0 opacity-0"
+      />
+    </div>
+  );
+}
+
+export const PersonNode = memo(PersonNodeComponent);

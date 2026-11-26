@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: shikor-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: shikor
+      POSTGRES_PASSWORD: shikor_dev_password
+      POSTGRES_DB: shikor
+    ports:
+      - "5433:5432"
+    volumes:
+      - shikor_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shikor -d shikor"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  shikor_pgdata:
