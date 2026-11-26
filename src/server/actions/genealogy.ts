@@ -199,6 +199,340 @@ export type QuickRelativeRelation =
   | "child"
   | "sibling";
 
+type DbTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+async function connectNewPersonToAnchor(params: {
+  tx: DbTx;
+  treeId: string;
+  userId: string;
+  createdPersonId: string;
+  anchorPerson: typeof persons.$inferSelect;
+  relation: QuickRelativeRelation;
+  lineageType?: LineageType;
+  partnershipStatus?: PartnershipStatus;
+  otherParentOrPartnershipId?: string | null;
+}) {
+  const {
+    tx,
+    treeId,
+    userId,
+    createdPersonId,
+    anchorPerson: anchor,
+    relation,
+    partnershipStatus,
+    otherParentOrPartnershipId,
+  } = params;
+  const lineage: LineageType = params.lineageType ?? "biological";
+
+  if (relation === "father" || relation === "mother") {
+    const existingParentLinks = await tx
+      .select()
+      .from(parentChildLinks)
+      .where(
+        and(
+          eq(parentChildLinks.treeId, treeId),
+          eq(parentChildLinks.childId, anchor.id),
+          eq(parentChildLinks.lineageType, "biological"),
+        ),
+      );
+
+    const oppositeRole = relation === "father" ? "mother" : "father";
+    const otherParentLink = existingParentLinks.find(
+      (l) => l.parentRole === oppositeRole,
+    );
+
+    let partnershipId: string | null = null;
+    if (otherParentLink && lineage === "biological") {
+      const [union] = await tx
+        .insert(partnerships)
+        .values({
+          treeId,
+          partner1Id:
+            relation === "father" ? createdPersonId : otherParentLink.parentId,
+          partner2Id:
+            relation === "mother" ? createdPersonId : otherParentLink.parentId,
+          status: "married",
+        })
+        .returning();
+      partnershipId = union.id;
+
+      await tx
+        .update(parentChildLinks)
+        .set({ partnershipId })
+        .where(eq(parentChildLinks.id, otherParentLink.id));
+    }
+
+    await tx.insert(parentChildLinks).values({
+      treeId,
+      parentId: createdPersonId,
+      childId: anchor.id,
+      partnershipId,
+      lineageType: lineage,
+      parentRole: relation,
+    });
+    return;
+  }
+
+  if (relation === "spouse") {
+    await tx.insert(partnerships).values({
+      treeId,
+      partner1Id: anchor.id,
+      partner2Id: createdPersonId,
+      status: partnershipStatus ?? "married",
+    });
+    return;
+  }
+
+  if (relation === "child") {
+    let partnershipId: string | null = null;
+    let coParentId: string | null = null;
+
+    if (otherParentOrPartnershipId) {
+      const union = await tx.query.partnerships.findFirst({
+        where: and(
+          eq(partnerships.id, otherParentOrPartnershipId),
+          eq(partnerships.treeId, treeId),
+        ),
+      });
+      if (union) {
+        partnershipId = union.id;
+        coParentId =
+          union.partner1Id === anchor.id ? union.partner2Id : union.partner1Id;
+      }
+    } else {
+      const anchorUnions = await tx
+        .select()
+        .from(partnerships)
+        .where(eq(partnerships.treeId, treeId));
+      const myUnions = anchorUnions.filter(
+        (u) => u.partner1Id === anchor.id || u.partner2Id === anchor.id,
+      );
+      if (myUnions.length === 1) {
+        partnershipId = myUnions[0].id;
+        coParentId =
+          myUnions[0].partner1Id === anchor.id
+            ? myUnions[0].partner2Id
+            : myUnions[0].partner1Id;
+      }
+    }
+
+    const anchorRole =
+      anchor.gender === "M"
+        ? "father"
+        : anchor.gender === "F"
+          ? "mother"
+          : "parent";
+
+    await tx.insert(parentChildLinks).values({
+      treeId,
+      parentId: anchor.id,
+      childId: createdPersonId,
+      partnershipId,
+      lineageType: lineage,
+      parentRole: anchorRole,
+    });
+
+    if (coParentId) {
+      const coParent = await tx.query.persons.findFirst({
+        where: eq(persons.id, coParentId),
+      });
+      const coRole =
+        coParent?.gender === "M"
+          ? "father"
+          : coParent?.gender === "F"
+            ? "mother"
+            : "parent";
+      await tx.insert(parentChildLinks).values({
+        treeId,
+        parentId: coParentId,
+        childId: createdPersonId,
+        partnershipId,
+        lineageType: lineage,
+        parentRole: coRole,
+      });
+    }
+    return;
+  }
+
+  if (relation === "sibling") {
+    const anchorParentLinks = await tx
+      .select()
+      .from(parentChildLinks)
+      .where(
+        and(
+          eq(parentChildLinks.treeId, treeId),
+          eq(parentChildLinks.childId, anchor.id),
+        ),
+      );
+
+    if (anchorParentLinks.length === 0) {
+      const [placeholderParent] = await tx
+        .insert(persons)
+        .values({
+          treeId,
+          displayName: `Parent of ${anchor.displayName}`,
+          isNameUnknown: true,
+          placeholderLabel: `Parent of ${anchor.displayName}`,
+          gender: "U",
+          isLiving: false,
+          createdById: userId,
+        })
+        .returning();
+
+      await tx.insert(parentChildLinks).values([
+        {
+          treeId,
+          parentId: placeholderParent.id,
+          childId: anchor.id,
+          lineageType: "biological",
+          parentRole: "parent",
+        },
+        {
+          treeId,
+          parentId: placeholderParent.id,
+          childId: createdPersonId,
+          lineageType: lineage,
+          parentRole: "parent",
+        },
+      ]);
+    } else {
+      await tx.insert(parentChildLinks).values(
+        anchorParentLinks.map((l) => ({
+          treeId,
+          parentId: l.parentId,
+          childId: createdPersonId,
+          partnershipId: l.partnershipId,
+          lineageType: lineage,
+          parentRole: l.parentRole,
+        })),
+      );
+    }
+  }
+}
+
+export interface AddPersonPayload {
+  treeId: string;
+  displayName: string;
+  nickname?: string | null;
+  nativeName?: string | null;
+  gender: Gender;
+  isLiving: boolean;
+  bloodGroup?: BloodGroup | null;
+  occupation?: string | null;
+  birthDatePrecision?: DatePrecision;
+  birthDate?: string | null;
+  birthDateText?: string | null;
+  currentCity?: string | null;
+  currentCountry?: string | null;
+  contactPhone?: string | null;
+  connection?: {
+    anchorPersonId: string;
+    relation: QuickRelativeRelation;
+    lineageType?: LineageType;
+    partnershipStatus?: PartnershipStatus;
+  } | null;
+}
+
+export async function addPersonAction(input: AddPersonPayload) {
+  try {
+    const { user, tree } = await requireTreeEditor(input.treeId);
+
+    const cleanName = input.displayName.trim();
+    if (!cleanName) {
+      return { ok: false as const, error: "Please enter a name." };
+    }
+
+    let anchor: typeof persons.$inferSelect | undefined;
+    if (input.connection?.anchorPersonId) {
+      anchor = await db.query.persons.findFirst({
+        where: and(
+          eq(persons.id, input.connection.anchorPersonId),
+          eq(persons.treeId, input.treeId),
+        ),
+      });
+      if (!anchor) {
+        return { ok: false as const, error: "Selected relative not found." };
+      }
+    }
+
+    const cleanCity = input.currentCity?.trim() || null;
+    const cleanCountry = input.currentCountry?.trim() || null;
+    let latitude: number | null = null;
+    let longitude: number | null = null;
+    if (cleanCity || cleanCountry) {
+      const coords = await geocodeCityCountry(cleanCity, cleanCountry);
+      if (coords) {
+        latitude = Number(coords.latitude.toFixed(6));
+        longitude = Number(coords.longitude.toFixed(6));
+      }
+    }
+
+    const birthPrecision: DatePrecision = input.birthDatePrecision ?? "unknown";
+    const birthYear = parseYearFromInput(
+      birthPrecision,
+      input.birthDate,
+      null,
+      input.birthDateText,
+    );
+
+    const newPerson = await db.transaction(async (tx) => {
+      const [created] = await tx
+        .insert(persons)
+        .values({
+          treeId: input.treeId,
+          displayName: cleanName,
+          fullName: cleanName,
+          nickname: input.nickname?.trim() || null,
+          nativeName: input.nativeName?.trim() || null,
+          gender: input.gender,
+          isLiving: input.isLiving,
+          bloodGroup: input.bloodGroup || null,
+          occupation: input.occupation?.trim() || null,
+          birthDatePrecision: birthPrecision,
+          birthDate:
+            birthPrecision === "exact" && input.birthDate
+              ? input.birthDate
+              : null,
+          birthYear,
+          birthDateText:
+            birthPrecision === "exact"
+              ? input.birthDate || null
+              : input.birthDateText?.trim() || null,
+          currentCity: cleanCity,
+          currentCountry: cleanCountry,
+          latitude,
+          longitude,
+          contactPhone: input.contactPhone?.trim() || null,
+          createdById: user.id,
+        })
+        .returning();
+
+      if (anchor && input.connection) {
+        await connectNewPersonToAnchor({
+          tx,
+          treeId: input.treeId,
+          userId: user.id,
+          createdPersonId: created.id,
+          anchorPerson: anchor,
+          relation: input.connection.relation,
+          lineageType: input.connection.lineageType,
+          partnershipStatus: input.connection.partnershipStatus,
+        });
+      }
+
+      return created;
+    });
+
+    revalidatePath(`/trees/${tree.slug}`);
+    return { ok: true as const, personId: newPerson.id };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error: err instanceof Error ? err.message : "Failed to add person.",
+    };
+  }
+}
+
 export async function quickAddRelativeAction(input: {
   treeId: string;
   anchorPersonId: string;
@@ -225,8 +559,6 @@ export async function quickAddRelativeAction(input: {
       return { ok: false as const, error: "Selected person not found." };
     }
 
-    const lineage: LineageType = input.lineageType ?? "biological";
-
     const newPerson = await db.transaction(async (tx) => {
       const [created] = await tx
         .insert(persons)
@@ -242,190 +574,17 @@ export async function quickAddRelativeAction(input: {
         })
         .returning();
 
-      if (input.relation === "father" || input.relation === "mother") {
-        // Check if anchor already has the other biological parent so we can auto-create/link their union!
-        const existingParentLinks = await tx
-          .select()
-          .from(parentChildLinks)
-          .where(
-            and(
-              eq(parentChildLinks.treeId, input.treeId),
-              eq(parentChildLinks.childId, anchor.id),
-              eq(parentChildLinks.lineageType, "biological"),
-            ),
-          );
-
-        const oppositeRole = input.relation === "father" ? "mother" : "father";
-        const otherParentLink = existingParentLinks.find(
-          (l) => l.parentRole === oppositeRole,
-        );
-
-        let partnershipId: string | null = null;
-        if (otherParentLink && lineage === "biological") {
-          const [union] = await tx
-            .insert(partnerships)
-            .values({
-              treeId: input.treeId,
-              partner1Id:
-                input.relation === "father"
-                  ? created.id
-                  : otherParentLink.parentId,
-              partner2Id:
-                input.relation === "mother"
-                  ? created.id
-                  : otherParentLink.parentId,
-              status: "married",
-            })
-            .returning();
-          partnershipId = union.id;
-
-          await tx
-            .update(parentChildLinks)
-            .set({ partnershipId })
-            .where(eq(parentChildLinks.id, otherParentLink.id));
-        }
-
-        await tx.insert(parentChildLinks).values({
-          treeId: input.treeId,
-          parentId: created.id,
-          childId: anchor.id,
-          partnershipId,
-          lineageType: lineage,
-          parentRole: input.relation,
-        });
-      } else if (input.relation === "spouse") {
-        await tx.insert(partnerships).values({
-          treeId: input.treeId,
-          partner1Id: anchor.id,
-          partner2Id: created.id,
-          status: input.partnershipStatus ?? "married",
-        });
-      } else if (input.relation === "child") {
-        let partnershipId: string | null = null;
-        let coParentId: string | null = null;
-
-        if (input.otherParentOrPartnershipId) {
-          const union = await tx.query.partnerships.findFirst({
-            where: and(
-              eq(partnerships.id, input.otherParentOrPartnershipId),
-              eq(partnerships.treeId, input.treeId),
-            ),
-          });
-          if (union) {
-            partnershipId = union.id;
-            coParentId =
-              union.partner1Id === anchor.id
-                ? union.partner2Id
-                : union.partner1Id;
-          }
-        } else {
-          // If anchor has exactly 1 partnership, attach child to that partnership automatically
-          const anchorUnions = await tx
-            .select()
-            .from(partnerships)
-            .where(eq(partnerships.treeId, input.treeId));
-          const myUnions = anchorUnions.filter(
-            (u) => u.partner1Id === anchor.id || u.partner2Id === anchor.id,
-          );
-          if (myUnions.length === 1) {
-            partnershipId = myUnions[0].id;
-            coParentId =
-              myUnions[0].partner1Id === anchor.id
-                ? myUnions[0].partner2Id
-                : myUnions[0].partner1Id;
-          }
-        }
-
-        const anchorRole =
-          anchor.gender === "M"
-            ? "father"
-            : anchor.gender === "F"
-              ? "mother"
-              : "parent";
-
-        await tx.insert(parentChildLinks).values({
-          treeId: input.treeId,
-          parentId: anchor.id,
-          childId: created.id,
-          partnershipId,
-          lineageType: lineage,
-          parentRole: anchorRole,
-        });
-
-        if (coParentId) {
-          const coParent = await tx.query.persons.findFirst({
-            where: eq(persons.id, coParentId),
-          });
-          const coRole =
-            coParent?.gender === "M"
-              ? "father"
-              : coParent?.gender === "F"
-                ? "mother"
-                : "parent";
-          await tx.insert(parentChildLinks).values({
-            treeId: input.treeId,
-            parentId: coParentId,
-            childId: created.id,
-            partnershipId,
-            lineageType: lineage,
-            parentRole: coRole,
-          });
-        }
-      } else if (input.relation === "sibling") {
-        const anchorParentLinks = await tx
-          .select()
-          .from(parentChildLinks)
-          .where(
-            and(
-              eq(parentChildLinks.treeId, input.treeId),
-              eq(parentChildLinks.childId, anchor.id),
-            ),
-          );
-
-        if (anchorParentLinks.length === 0) {
-          // Create an unknown placeholder parent so the two siblings connect cleanly on the DAG!
-          const [placeholderParent] = await tx
-            .insert(persons)
-            .values({
-              treeId: input.treeId,
-              displayName: `Parent of ${anchor.displayName}`,
-              isNameUnknown: true,
-              placeholderLabel: `Parent of ${anchor.displayName}`,
-              gender: "U",
-              isLiving: false,
-              createdById: user.id,
-            })
-            .returning();
-
-          await tx.insert(parentChildLinks).values([
-            {
-              treeId: input.treeId,
-              parentId: placeholderParent.id,
-              childId: anchor.id,
-              lineageType: "biological",
-              parentRole: "parent",
-            },
-            {
-              treeId: input.treeId,
-              parentId: placeholderParent.id,
-              childId: created.id,
-              lineageType: lineage,
-              parentRole: "parent",
-            },
-          ]);
-        } else {
-          await tx.insert(parentChildLinks).values(
-            anchorParentLinks.map((l) => ({
-              treeId: input.treeId,
-              parentId: l.parentId,
-              childId: created.id,
-              partnershipId: l.partnershipId,
-              lineageType: lineage,
-              parentRole: l.parentRole,
-            })),
-          );
-        }
-      }
+      await connectNewPersonToAnchor({
+        tx,
+        treeId: input.treeId,
+        userId: user.id,
+        createdPersonId: created.id,
+        anchorPerson: anchor,
+        relation: input.relation,
+        lineageType: input.lineageType,
+        partnershipStatus: input.partnershipStatus,
+        otherParentOrPartnershipId: input.otherParentOrPartnershipId,
+      });
 
       return created;
     });

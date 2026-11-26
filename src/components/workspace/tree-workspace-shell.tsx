@@ -9,11 +9,13 @@ import {
   HeartHandshake,
   Search,
   TableProperties,
+  UserPlus,
 } from "lucide-react";
 
 import { UserNav } from "@/components/auth/user-nav";
 import { ShikorLogo } from "@/components/brand/shikor-logo";
 import { FamilyGraphCanvas } from "@/components/graph/family-graph-canvas";
+import { AddPersonDialog } from "@/components/person-drawer/add-person-dialog";
 import {
   PersonEditorSheet,
   type PersonEditorTab,
@@ -84,6 +86,7 @@ export function TreeWorkspaceShell({
   );
 
   const [searchOpen, setSearchOpen] = useState(false);
+  const [addPersonOpen, setAddPersonOpen] = useState(false);
   const [quickAddState, setQuickAddState] = useState<{
     open: boolean;
     anchorPersonId: string | null;
@@ -254,6 +257,17 @@ export function TreeWorkspaceShell({
 
           {/* Right Actions */}
           <div className="flex items-center gap-2">
+            {canEdit && (
+              <Button
+                size="sm"
+                onClick={() => setAddPersonOpen(true)}
+                className="h-8 gap-1.5 text-xs cursor-pointer"
+              >
+                <UserPlus className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Add Person</span>
+              </Button>
+            )}
+
             <Button
               variant="outline"
               size="sm"
@@ -394,20 +408,34 @@ export function TreeWorkspaceShell({
 
       {/* Quick Add / Link Existing Modal */}
       {canEdit && (
-        <QuickAddRelativeDialog
-          open={quickAddState.open}
-          onOpenChange={(open) =>
-            setQuickAddState((prev) => ({ ...prev, open }))
-          }
-          treeId={tree.id}
-          anchorPerson={quickAddAnchor}
-          initialRelation={quickAddState.relation}
-          allPersons={persons}
-          partnerships={partnerships}
-          onCreatedPerson={(newId) => {
-            setSelectedPersonId(newId);
-          }}
-        />
+        <>
+          <AddPersonDialog
+            open={addPersonOpen}
+            onOpenChange={setAddPersonOpen}
+            treeId={tree.id}
+            allPersons={persons}
+            claimedPersonId={claimedPersonId}
+            defaultAnchorPersonId={selectedPersonId}
+            onCreatedPerson={(newId) => {
+              setSelectedPersonId(newId);
+            }}
+          />
+
+          <QuickAddRelativeDialog
+            open={quickAddState.open}
+            onOpenChange={(open) =>
+              setQuickAddState((prev) => ({ ...prev, open }))
+            }
+            treeId={tree.id}
+            anchorPerson={quickAddAnchor}
+            initialRelation={quickAddState.relation}
+            allPersons={persons}
+            partnerships={partnerships}
+            onCreatedPerson={(newId) => {
+              setSelectedPersonId(newId);
+            }}
+          />
+        </>
       )}
 
       {/* Command Palette (Ctrl+K / Cmd+K) */}
