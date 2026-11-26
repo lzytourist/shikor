@@ -168,12 +168,10 @@ export function QuickAddRelativeDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>
-            Connect Relative to {anchorPerson.displayName}
-          </DialogTitle>
+          <DialogTitle>Add a Relative to {anchorPerson.displayName}</DialogTitle>
           <DialogDescription>
-            Create a new family member or link two existing people in the tree
-            (e.g., cousin marriages or adoptive ties).
+            Add a new family member or connect someone who is already in the
+            tree.
           </DialogDescription>
         </DialogHeader>
 
@@ -181,11 +179,11 @@ export function QuickAddRelativeDialog({
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="new" className="gap-1.5 text-xs">
               <UserPlus className="h-3.5 w-3.5" />
-              Create New Person
+              New Family Member
             </TabsTrigger>
             <TabsTrigger value="existing" className="gap-1.5 text-xs">
               <Link2 className="h-3.5 w-3.5" />
-              Link Existing Person
+              Already in Tree
             </TabsTrigger>
           </TabsList>
 
@@ -272,7 +270,7 @@ export function QuickAddRelativeDialog({
 
                 {relation === "spouse" ? (
                   <Field className="gap-1.5">
-                    <FieldLabel>Union Status</FieldLabel>
+                    <FieldLabel>Marriage Status</FieldLabel>
                     <Select
                       value={partnershipStatus}
                       onValueChange={(v) =>
@@ -294,7 +292,7 @@ export function QuickAddRelativeDialog({
                 ) : (
                   <div className="grid grid-cols-2 gap-3">
                     <Field className="gap-1.5">
-                      <FieldLabel>Lineage Type</FieldLabel>
+                      <FieldLabel>Parent Relationship</FieldLabel>
                       <Select
                         value={lineageType}
                         onValueChange={(v) => setLineageType(v as LineageType)}
@@ -304,8 +302,8 @@ export function QuickAddRelativeDialog({
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="biological">Biological</SelectItem>
-                          <SelectItem value="adoptive">Adoptive</SelectItem>
-                          <SelectItem value="step">Step</SelectItem>
+                          <SelectItem value="adoptive">Adopted</SelectItem>
+                          <SelectItem value="step">Step-parent</SelectItem>
                           <SelectItem value="foster">Foster</SelectItem>
                         </SelectContent>
                       </Select>
@@ -313,7 +311,7 @@ export function QuickAddRelativeDialog({
 
                     {relation === "child" && anchorUnions.length > 1 && (
                       <Field className="gap-1.5">
-                        <FieldLabel>Other Parent / Union</FieldLabel>
+                        <FieldLabel>Other Parent</FieldLabel>
                         <Select
                           value={selectedUnionId}
                           onValueChange={setSelectedUnionId}

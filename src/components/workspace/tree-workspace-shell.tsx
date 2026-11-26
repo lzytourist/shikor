@@ -187,9 +187,15 @@ export function TreeWorkspaceShell({
                 </h1>
                 <Badge
                   variant="secondary"
-                  className="capitalize text-[10px] hidden sm:inline-flex"
+                  className="text-[10px] hidden sm:inline-flex"
                 >
-                  {accessRole === "guest" ? "Shared View" : accessRole}
+                  {accessRole === "guest"
+                    ? "Shared View"
+                    : accessRole === "owner"
+                      ? "Owner"
+                      : accessRole === "editor"
+                        ? "Can Edit"
+                        : "View Only"}
                 </Badge>
               </div>
             </div>
@@ -204,7 +210,7 @@ export function TreeWorkspaceShell({
               className="h-8 gap-1.5 text-xs px-2.5 sm:px-3 cursor-pointer"
             >
               <GitFork className="h-3.5 w-3.5 rotate-180" />
-              <span className="hidden md:inline">Graph</span>
+              <span className="hidden md:inline">Family Tree</span>
             </Button>
 
             <Button
@@ -234,7 +240,7 @@ export function TreeWorkspaceShell({
               className="h-8 gap-1.5 text-xs px-2.5 sm:px-3 cursor-pointer"
             >
               <HeartHandshake className="h-3.5 w-3.5" />
-              <span className="hidden md:inline">Kinship</span>
+              <span className="hidden md:inline">Relationships</span>
             </Button>
           </nav>
 
@@ -375,7 +381,7 @@ export function TreeWorkspaceShell({
 
       {/* Command Palette (Ctrl+K / Cmd+K) */}
       <CommandDialog open={searchOpen} onOpenChange={setSearchOpen}>
-        <CommandInput placeholder="Jump to any family member by name, daknam, বাংলা, or blood group..." />
+        <CommandInput placeholder="Search family members by name, nickname, বাংলা, or blood group..." />
         <CommandList>
           <CommandEmpty>No family member found.</CommandEmpty>
           <CommandGroup heading={`Family Members (${persons.length})`}>

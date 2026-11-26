@@ -129,13 +129,13 @@ export function FamilyMapView({ persons, onSelectPerson }: FamilyMapViewProps) {
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-sm flex items-center gap-2">
                 <Globe2 className="h-4 w-4 text-primary" />
-                Family Diaspora Locations
+                Where Our Family Lives
               </h3>
               <Badge variant="secondary">{clusters.length} cities</Badge>
             </div>
             <p className="text-xs text-muted-foreground">
-              Edit any relative&apos;s Current City &amp; Country in their
-              profile drawer to automatically geocode and pin them on the map.
+              Add a relative&apos;s city and country on their profile to see
+              them on the family map.
             </p>
           </div>
 

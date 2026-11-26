@@ -103,15 +103,15 @@ export function ShareCollaborateDialog({
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="gap-1.5 cursor-pointer">
           <Share2 className="h-3.5 w-3.5 text-primary" />
-          <span className="hidden sm:inline">Share &amp; Access</span>
+          <span className="hidden sm:inline">Share</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Share &amp; Family Collaboration</DialogTitle>
+          <DialogTitle>Share Family Tree</DialogTitle>
           <DialogDescription>
-            Invite trusted family editors or create a passcode-protected link
-            for your family WhatsApp group.
+            Create a passcode-protected link for your family chat, or invite
+            relatives to help update the tree.
           </DialogDescription>
         </DialogHeader>
 
@@ -228,7 +228,7 @@ export function ShareCollaborateDialog({
                 className="rounded-xl border bg-muted/25 p-3.5 space-y-2.5"
               >
                 <p className="text-xs font-semibold">
-                  Grant Access to a Registered Shikor User
+                  Invite a Family Member by Email
                 </p>
                 <div className="flex gap-2">
                   <Input
@@ -248,8 +248,8 @@ export function ShareCollaborateDialog({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="editor">Editor</SelectItem>
-                      <SelectItem value="viewer">Viewer</SelectItem>
+                      <SelectItem value="editor">Can Edit</SelectItem>
+                      <SelectItem value="viewer">View Only</SelectItem>
                     </SelectContent>
                   </Select>
                   <Button type="submit" size="sm" disabled={isPending}>

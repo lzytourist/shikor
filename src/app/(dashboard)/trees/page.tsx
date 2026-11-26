@@ -50,11 +50,11 @@ async function TreesWorkspaceBody() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div className="space-y-1">
           <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">
-            Family Tree Workspaces
+            My Family Trees
           </h1>
           <p className="text-sm text-muted-foreground">
-            Open an existing family graph, invite relatives to co-edit, or start
-            a new lineage.
+            Open a family tree, invite relatives to contribute, or start a new
+            one.
           </p>
         </div>
 
@@ -72,10 +72,8 @@ async function TreesWorkspaceBody() {
             </div>
             <CardTitle className="text-xl">No family trees yet</CardTitle>
             <CardDescription className="text-sm leading-relaxed">
-              Create a blank family tree from scratch, or click{" "}
-              <strong>Import Legacy SQL</strong> above to load all 150 members
-              of your legacy family tree with inferred marriages and cleaned
-              nicknames.
+              Start a new family tree from scratch, or import a legacy SQL
+              family tree to get started right away.
             </CardDescription>
           </CardHeader>
           <CardContent className="pb-12 flex justify-center">
@@ -98,7 +96,11 @@ async function TreesWorkspaceBody() {
                     variant={tree.role === "owner" ? "default" : "secondary"}
                     className="capitalize"
                   >
-                    {tree.role}
+                    {tree.role === "owner"
+                      ? "Owner"
+                      : tree.role === "editor"
+                        ? "Can Edit"
+                        : "View Only"}
                   </Badge>
                   {tree.claimedPersonName && (
                     <span className="inline-flex items-center gap-1 text-xs text-muted-foreground truncate">
@@ -114,7 +116,7 @@ async function TreesWorkspaceBody() {
                   </CardTitle>
                   <CardDescription className="line-clamp-2 mt-1.5 min-h-[2.5rem]">
                     {tree.description ||
-                      "Interactive multi-generational family graph and directory."}
+                      "Family tree, stories, and relative directory."}
                   </CardDescription>
                 </div>
               </CardHeader>
@@ -128,7 +130,7 @@ async function TreesWorkspaceBody() {
                         {tree.personsCount}
                       </p>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
-                        Relatives
+                        Members
                       </p>
                     </div>
                   </div>
@@ -139,7 +141,7 @@ async function TreesWorkspaceBody() {
                         {tree.partnershipsCount}
                       </p>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
-                        Unions
+                        Marriages
                       </p>
                     </div>
                   </div>
@@ -149,7 +151,7 @@ async function TreesWorkspaceBody() {
               <CardFooter className="pt-0">
                 <Button asChild className="w-full gap-2">
                   <Link href={`/trees/${tree.slug}`}>
-                    Open Tree Workspace
+                    Open Family Tree
                     <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                   </Link>
                 </Button>
@@ -166,12 +168,13 @@ async function TreesWorkspaceBody() {
           </div>
           <div>
             <p className="text-sm font-medium">
-              Tip: Claim your node inside each tree
+              Tip: Mark yourself in the family tree
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Once linked as &ldquo;This is me&rdquo;, clicking any relative
-              automatically calculates how they are related to you in English
-              and বাংলা (e.g., Chacha · চাচা, Fupato Bhai · ফুপাতো ভাই).
+              Once you select &ldquo;This is me&rdquo; on your profile, Shikor
+              automatically shows how every relative is connected to you in
+              English and বাংলা (like Chacha · চাচা or Fupato Bhai · ফুপাতো
+              ভাই).
             </p>
           </div>
         </div>

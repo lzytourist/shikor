@@ -13,7 +13,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { FamilyGraphNode, PersonNodeData } from "@/lib/graph-layout/family-elk";
+import type {
+  FamilyGraphNode,
+  PersonNodeData,
+} from "@/lib/graph-layout/family-elk";
 import { cn } from "@/lib/utils";
 
 function getInitials(name: string) {
@@ -36,9 +39,12 @@ function PersonNodeComponent({
     kinshipBadge,
     isClaimedSelf,
     isFocused,
+    isPairAnchor,
     isHighlighted,
+    isDimmed,
     canEdit,
     onSelectPerson,
+    onCtrlSelectPerson,
     onQuickAdd,
   } = data as PersonNodeData;
 
@@ -51,16 +57,34 @@ function PersonNodeComponent({
 
   return (
     <div
-      onClick={() => onSelectPerson(person.id)}
+      onClick={(e) => {
+        if ((e.ctrlKey || e.metaKey) && onCtrlSelectPerson) {
+          e.preventDefault();
+          e.stopPropagation();
+          onCtrlSelectPerson(person.id);
+          return;
+        }
+        onSelectPerson(person.id);
+      }}
+      title="Click to view profile · Ctrl+Click two relatives to see how they're related"
       className={cn(
-        "group relative w-[236px] min-h-[92px] rounded-xl border bg-card px-3 py-2.5 shadow-xs transition-all cursor-pointer select-none",
+        "group relative w-[236px] min-h-[92px] rounded-xl border bg-card px-3 py-2.5 shadow-xs transition-all duration-200 cursor-pointer select-none",
         "hover:border-primary/60 hover:shadow-md",
         person.isNameUnknown && "border-dashed bg-card/85",
-        (selected || isFocused) && "ring-2 ring-primary border-primary shadow-md",
+        (selected || isFocused) &&
+          "ring-2 ring-primary border-primary shadow-md",
+        isPairAnchor &&
+          "ring-2 ring-amber-500 border-amber-500 bg-amber-500/[0.06] shadow-lg scale-[1.02]",
         isHighlighted &&
-          "ring-2 ring-primary bg-primary/[0.04] dark:bg-primary/[0.08] border-primary shadow-lg",
+          "ring-2 ring-primary bg-primary/[0.06] dark:bg-primary/[0.12] border-primary shadow-lg scale-[1.02]",
+        isDimmed && "opacity-25 saturate-50 hover:opacity-80",
       )}
     >
+      {isPairAnchor && (
+        <span className="absolute -top-2.5 left-3 rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-semibold text-white shadow-xs">
+          Selected · Ctrl+Click another
+        </span>
+      )}
       <Handle
         type="target"
         position={Position.Top}
@@ -68,12 +92,16 @@ function PersonNodeComponent({
       />
 
       <div className="flex items-start gap-2.5">
-        <Avatar className={cn("h-10 w-10 ring-2 shrink-0 mt-0.5", genderAccent)}>
+        <Avatar
+          className={cn("h-10 w-10 ring-2 shrink-0 mt-0.5", genderAccent)}
+        >
           <AvatarImage
             src={person.avatarUrl ?? undefined}
             alt={person.displayName}
           />
-          <AvatarFallback className={cn("text-xs font-semibold", genderAccent)}>
+          <AvatarFallback
+            className={cn("text-xs font-semibold", genderAccent)}
+          >
             {person.isNameUnknown
               ? "?"
               : getInitials(person.displayName) || "P"}
@@ -113,7 +141,9 @@ function PersonNodeComponent({
               <span
                 className={cn(
                   "h-1.5 w-1.5 rounded-full shrink-0",
-                  person.isLiving ? "bg-emerald-500" : "bg-muted-foreground/50",
+                  person.isLiving
+                    ? "bg-emerald-500"
+                    : "bg-muted-foreground/50",
                 )}
               />
               {lifespanLabel}

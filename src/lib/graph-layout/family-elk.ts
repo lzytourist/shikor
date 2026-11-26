@@ -1,4 +1,7 @@
-import ELK, { type ElkExtendedEdge, type ElkNode } from "elkjs/lib/elk.bundled.js";
+import ELK, {
+  type ElkExtendedEdge,
+  type ElkNode,
+} from "elkjs/lib/elk.bundled.js";
 import type { Edge, Node } from "@xyflow/react";
 
 import type { ParentChildLink, Partnership, Person } from "@/db/schema";
@@ -8,8 +11,25 @@ const elk = new ELK();
 
 export const PERSON_NODE_WIDTH = 236;
 export const PERSON_NODE_HEIGHT = 92;
-export const UNION_NODE_WIDTH = 52;
+export const UNION_NODE_WIDTH = 56;
 export const UNION_NODE_HEIGHT = 28;
+
+export interface EdgeSpotlightPayload {
+  key: string;
+  summary: string;
+  personIds: string[];
+  unionIds: string[];
+  edgeIds: string[];
+}
+
+export interface FamilyEdgeData extends Record<string, unknown> {
+  kind: "partner-union" | "union-child" | "parent-child";
+  spotlight: EdgeSpotlightPayload;
+  baseStroke: string;
+  baseStrokeWidth: number;
+  baseStrokeOpacity?: number;
+  baseDasharray?: string;
+}
 
 export interface PersonNodeData extends Record<string, unknown> {
   person: Person;
@@ -17,9 +37,12 @@ export interface PersonNodeData extends Record<string, unknown> {
   kinshipBadge?: string | null;
   isClaimedSelf: boolean;
   isFocused: boolean;
+  isPairAnchor: boolean;
   isHighlighted: boolean;
+  isDimmed: boolean;
   canEdit: boolean;
   onSelectPerson: (personId: string) => void;
+  onCtrlSelectPerson?: (personId: string) => void;
   onQuickAdd?: (
     personId: string,
     relation: "father" | "mother" | "spouse" | "child" | "sibling",
@@ -31,12 +54,17 @@ export interface UnionNodeData extends Record<string, unknown> {
   childCount: number;
   isCollapsed: boolean;
   isHighlighted: boolean;
+  isDimmed: boolean;
+  spotlight: EdgeSpotlightPayload;
   onToggleCollapse: (unionId: string) => void;
+  onSelectUnion?: (spotlight: EdgeSpotlightPayload) => void;
 }
 
 export type FamilyGraphNode =
   | Node<PersonNodeData, "person">
   | Node<UnionNodeData, "union">;
+
+export type FamilyGraphEdge = Edge<FamilyEdgeData>;
 
 export function computeHourglassPersonIds(params: {
   focusPersonId: string;
@@ -123,8 +151,16 @@ function getLifespanLabel(person: Person): string {
     text: person.deathDateText,
   });
 
-  const bShort = birth ? (person.birthYear ? String(person.birthYear) : birth) : null;
-  const dShort = death ? (person.deathYear ? String(person.deathYear) : death) : null;
+  const bShort = birth
+    ? person.birthYear
+      ? String(person.birthYear)
+      : birth
+    : null;
+  const dShort = death
+    ? person.deathYear
+      ? String(person.deathYear)
+      : death
+    : null;
 
   if (bShort && dShort) return `${bShort} – ${dShort}`;
   if (bShort && person.isLiving) return `b. ${bShort} · Living`;
@@ -140,17 +176,19 @@ export async function buildLayoutedFamilyGraph(params: {
   focusPersonId?: string | null;
   hourglassMode: boolean;
   collapsedUnionIds: Set<string>;
-  highlightedPersonIds: Set<string>;
+  highlightedPersonIds?: Set<string>;
   claimedPersonId: string | null;
   kinshipBadgesById: Map<string, string>;
   canEdit: boolean;
   onSelectPerson: (personId: string) => void;
+  onCtrlSelectPerson?: (personId: string) => void;
   onQuickAdd?: (
     personId: string,
     relation: "father" | "mother" | "spouse" | "child" | "sibling",
   ) => void;
   onToggleCollapse: (unionId: string) => void;
-}): Promise<{ nodes: FamilyGraphNode[]; edges: Edge[] }> {
+  onSelectUnion?: (spotlight: EdgeSpotlightPayload) => void;
+}): Promise<{ nodes: FamilyGraphNode[]; edges: FamilyGraphEdge[] }> {
   const {
     persons,
     partnerships,
@@ -158,13 +196,14 @@ export async function buildLayoutedFamilyGraph(params: {
     focusPersonId,
     hourglassMode,
     collapsedUnionIds,
-    highlightedPersonIds,
     claimedPersonId,
     kinshipBadgesById,
     canEdit,
     onSelectPerson,
+    onCtrlSelectPerson,
     onQuickAdd,
     onToggleCollapse,
+    onSelectUnion,
   } = params;
 
   let allowedIds = new Set(persons.map((p) => p.id));
@@ -206,6 +245,7 @@ export async function buildLayoutedFamilyGraph(params: {
 
   const visiblePersons = persons.filter((p) => allowedIds.has(p.id));
   const visiblePersonIds = new Set(visiblePersons.map((p) => p.id));
+  const personMap = new Map(visiblePersons.map((p) => [p.id, p]));
 
   const visiblePartnerships = partnerships.filter(
     (u) =>
@@ -213,24 +253,30 @@ export async function buildLayoutedFamilyGraph(params: {
   );
   const visibleUnionIds = new Set(visiblePartnerships.map((u) => u.id));
 
-  // Count total children per union (before collapse hiding) so collapsed badge shows count
+  // Count total children per union (before collapse hiding) & visible children per union
   const totalChildrenByUnion = new Map<string, Set<string>>();
+  const visibleChildrenByUnion = new Map<string, Set<string>>();
   for (const l of parentChildLinks) {
     if (l.partnershipId) {
-      const set = totalChildrenByUnion.get(l.partnershipId) ?? new Set();
-      set.add(l.childId);
-      totalChildrenByUnion.set(l.partnershipId, set);
+      const totalSet = totalChildrenByUnion.get(l.partnershipId) ?? new Set();
+      totalSet.add(l.childId);
+      totalChildrenByUnion.set(l.partnershipId, totalSet);
+
+      if (visiblePersonIds.has(l.childId)) {
+        const visSet = visibleChildrenByUnion.get(l.partnershipId) ?? new Set();
+        visSet.add(l.childId);
+        visibleChildrenByUnion.set(l.partnershipId, visSet);
+      }
     }
   }
 
   const rfNodes: FamilyGraphNode[] = [];
-  const rfEdges: Edge[] = [];
+  const rfEdges: FamilyGraphEdge[] = [];
   const elkChildren: ElkNode[] = [];
   const elkEdges: ElkExtendedEdge[] = [];
 
   for (const person of visiblePersons) {
     const nodeId = `person:${person.id}`;
-    const isHighlighted = highlightedPersonIds.has(person.id);
 
     rfNodes.push({
       id: nodeId,
@@ -242,9 +288,12 @@ export async function buildLayoutedFamilyGraph(params: {
         kinshipBadge: kinshipBadgesById.get(person.id) ?? null,
         isClaimedSelf: claimedPersonId === person.id,
         isFocused: focusPersonId === person.id,
-        isHighlighted,
+        isPairAnchor: false,
+        isHighlighted: false,
+        isDimmed: false,
         canEdit,
         onSelectPerson,
+        onCtrlSelectPerson,
         onQuickAdd,
       },
     });
@@ -259,9 +308,29 @@ export async function buildLayoutedFamilyGraph(params: {
   for (const union of visiblePartnerships) {
     const unionNodeId = `union:${union.id}`;
     const childCount = totalChildrenByUnion.get(union.id)?.size ?? 0;
-    const isHighlighted =
-      highlightedPersonIds.has(union.partner1Id) &&
-      highlightedPersonIds.has(union.partner2Id);
+    const visChildren = [...(visibleChildrenByUnion.get(union.id) ?? [])];
+
+    const p1 = personMap.get(union.partner1Id);
+    const p2 = personMap.get(union.partner2Id);
+    const p1Name = p1?.displayName ?? "Partner 1";
+    const p2Name = p2?.displayName ?? "Partner 2";
+
+    const partnerEdge0 = `e-partner-${union.id}-0`;
+    const partnerEdge1 = `e-partner-${union.id}-1`;
+    const childEdgeIds = visChildren.map(
+      (cid) => `e-union-child-${union.id}-${cid}`,
+    );
+
+    const unionFamilySpotlight: EdgeSpotlightPayload = {
+      key: `union-family:${union.id}`,
+      summary:
+        visChildren.length > 0
+          ? `${p1Name} + ${p2Name} (${visChildren.length} ${visChildren.length === 1 ? "child" : "children"})`
+          : `${p1Name} + ${p2Name} (${union.status})`,
+      personIds: [union.partner1Id, union.partner2Id, ...visChildren],
+      unionIds: [union.id],
+      edgeIds: [partnerEdge0, partnerEdge1, ...childEdgeIds],
+    };
 
     rfNodes.push({
       id: unionNodeId,
@@ -271,8 +340,11 @@ export async function buildLayoutedFamilyGraph(params: {
         partnership: union,
         childCount,
         isCollapsed: collapsedUnionIds.has(union.id),
-        isHighlighted,
+        isHighlighted: false,
+        isDimmed: false,
+        spotlight: unionFamilySpotlight,
         onToggleCollapse,
+        onSelectUnion,
       },
     });
 
@@ -285,6 +357,23 @@ export async function buildLayoutedFamilyGraph(params: {
     const p1Node = `person:${union.partner1Id}`;
     const p2Node = `person:${union.partner2Id}`;
 
+    const coupleSpotlight: EdgeSpotlightPayload = {
+      key: `couple:${union.id}`,
+      summary: `${p1Name} + ${p2Name} (${union.status})`,
+      personIds: [union.partner1Id, union.partner2Id],
+      unionIds: [union.id],
+      edgeIds: [partnerEdge0, partnerEdge1],
+    };
+
+    const baseStroke =
+      union.status === "divorced"
+        ? "var(--destructive)"
+        : "var(--muted-foreground)";
+    const baseDasharray =
+      union.status === "divorced" || union.status === "separated"
+        ? "5 4"
+        : undefined;
+
     for (const [idx, partnerNodeId] of [p1Node, p2Node].entries()) {
       const edgeId = `e-partner-${union.id}-${idx}`;
       rfEdges.push({
@@ -292,18 +381,19 @@ export async function buildLayoutedFamilyGraph(params: {
         source: partnerNodeId,
         target: unionNodeId,
         type: "smoothstep",
-        animated: false,
+        interactionWidth: 22,
+        className: "cursor-pointer",
+        data: {
+          kind: "partner-union",
+          spotlight: coupleSpotlight,
+          baseStroke,
+          baseStrokeWidth: 1.75,
+          baseDasharray,
+        },
         style: {
-          stroke: isHighlighted
-            ? "var(--primary)"
-            : union.status === "divorced"
-              ? "var(--destructive)"
-              : "var(--muted-foreground)",
-          strokeWidth: isHighlighted ? 2.5 : 1.75,
-          strokeDasharray:
-            union.status === "divorced" || union.status === "separated"
-              ? "5 4"
-              : undefined,
+          stroke: baseStroke,
+          strokeWidth: 1.75,
+          strokeDasharray: baseDasharray,
         },
       });
       elkEdges.push({
@@ -314,11 +404,7 @@ export async function buildLayoutedFamilyGraph(params: {
     }
   }
 
-  // Deduplicate union -> child edges so a child with 2 parents in the same visible union gets ONE clean line from the union!
   const emittedUnionChildPairs = new Set<string>();
-
-  // Sort links by child's siblingOrder so ELK respects birth order left-to-right
-  const personMap = new Map(visiblePersons.map((p) => [p.id, p]));
   const sortedLinks = [...parentChildLinks]
     .filter(
       (l) =>
@@ -332,7 +418,9 @@ export async function buildLayoutedFamilyGraph(params: {
 
   for (const link of sortedLinks) {
     const childNodeId = `person:${link.childId}`;
+    const childName = personMap.get(link.childId)?.displayName ?? "Child";
     const isNonBio = link.lineageType !== "biological";
+    const baseDasharray = isNonBio ? "4 4" : undefined;
 
     if (link.partnershipId && visibleUnionIds.has(link.partnershipId)) {
       const key = `${link.partnershipId}->${link.childId}`;
@@ -340,27 +428,46 @@ export async function buildLayoutedFamilyGraph(params: {
       emittedUnionChildPairs.add(key);
 
       const unionNodeId = `union:${link.partnershipId}`;
-      const union = visiblePartnerships.find((u) => u.id === link.partnershipId);
-      const isHighlighted =
-        highlightedPersonIds.has(link.childId) &&
-        Boolean(
-          union &&
-            (highlightedPersonIds.has(union.partner1Id) ||
-              highlightedPersonIds.has(union.partner2Id)),
-        );
+      const union = visiblePartnerships.find(
+        (u) => u.id === link.partnershipId,
+      )!;
+      const p1Name = personMap.get(union.partner1Id)?.displayName ?? "Parent 1";
+      const p2Name = personMap.get(union.partner2Id)?.displayName ?? "Parent 2";
 
       const edgeId = `e-union-child-${link.partnershipId}-${link.childId}`;
+      const spotlight: EdgeSpotlightPayload = {
+        key: edgeId,
+        summary: `${p1Name} + ${p2Name} → ${childName}`,
+        personIds: [union.partner1Id, union.partner2Id, link.childId],
+        unionIds: [union.id],
+        edgeIds: [
+          `e-partner-${union.id}-0`,
+          `e-partner-${union.id}-1`,
+          edgeId,
+        ],
+      };
+
       rfEdges.push({
         id: edgeId,
         source: unionNodeId,
         target: childNodeId,
         type: "smoothstep",
-        animated: isHighlighted,
+        interactionWidth: 22,
+        className: "cursor-pointer",
         label: isNonBio ? link.lineageType : undefined,
+        data: {
+          kind: "union-child",
+          spotlight,
+          baseStroke: "var(--muted-foreground)",
+          baseStrokeWidth: 1.75,
+          baseStrokeOpacity: 0.55,
+          baseDasharray,
+        },
         style: {
-          stroke: isHighlighted ? "var(--primary)" : "var(--border)",
-          strokeWidth: isHighlighted ? 2.75 : 1.75,
-          strokeDasharray: isNonBio ? "4 4" : undefined,
+          stroke: "var(--muted-foreground)",
+          strokeOpacity: 0.55,
+          strokeWidth: 1.75,
+          strokeDasharray: baseDasharray,
         },
       });
       elkEdges.push({
@@ -369,25 +476,39 @@ export async function buildLayoutedFamilyGraph(params: {
         targets: [childNodeId],
       });
     } else {
-      // Single known parent or other parent hidden -> connect directly Parent -> Child
       const parentNodeId = `person:${link.parentId}`;
-      const isHighlighted =
-        highlightedPersonIds.has(link.parentId) &&
-        highlightedPersonIds.has(link.childId);
+      const parentName = personMap.get(link.parentId)?.displayName ?? "Parent";
       const edgeId = `e-parent-child-${link.id}`;
+
+      const spotlight: EdgeSpotlightPayload = {
+        key: edgeId,
+        summary: `${parentName} → ${childName}`,
+        personIds: [link.parentId, link.childId],
+        unionIds: [],
+        edgeIds: [edgeId],
+      };
 
       rfEdges.push({
         id: edgeId,
         source: parentNodeId,
         target: childNodeId,
         type: "smoothstep",
-        animated: isHighlighted,
+        interactionWidth: 22,
+        className: "cursor-pointer",
         label: isNonBio ? link.lineageType : undefined,
+        data: {
+          kind: "parent-child",
+          spotlight,
+          baseStroke: "var(--muted-foreground)",
+          baseStrokeWidth: 1.65,
+          baseStrokeOpacity: 0.55,
+          baseDasharray,
+        },
         style: {
-          stroke: isHighlighted ? "var(--primary)" : "var(--muted-foreground)",
-          strokeOpacity: isHighlighted ? 1 : 0.55,
-          strokeWidth: isHighlighted ? 2.75 : 1.6,
-          strokeDasharray: isNonBio ? "4 4" : undefined,
+          stroke: "var(--muted-foreground)",
+          strokeOpacity: 0.55,
+          strokeWidth: 1.65,
+          strokeDasharray: baseDasharray,
         },
       });
       elkEdges.push({

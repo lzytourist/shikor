@@ -71,12 +71,12 @@ export function KinshipCalculatorView({
         <CardHeader>
           <div className="flex items-center gap-2 text-primary text-xs font-semibold uppercase tracking-wider">
             <HeartHandshake className="h-4 w-4" />
-            Cultural Kinship Pathfinder
+            Relationship Finder
           </div>
           <CardTitle className="text-2xl">How are we related?</CardTitle>
           <CardDescription>
-            Select any two family members to trace their shortest lineage or
-            marriage connection in English and Bengali (বাংলা).
+            Choose any two family members to see how they are connected in
+            English and Bengali (বাংলা).
           </CardDescription>
         </CardHeader>
 
@@ -84,7 +84,7 @@ export function KinshipCalculatorView({
           <div className="grid sm:grid-cols-[1fr_auto_1fr] items-end gap-3">
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground">
-                From Person (Perspective)
+                First Person
               </label>
               <Select value={personAId} onValueChange={setPersonAId}>
                 <SelectTrigger>
@@ -118,7 +118,7 @@ export function KinshipCalculatorView({
 
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground">
-                To Relative
+                Second Person
               </label>
               <Select value={personBId} onValueChange={setPersonBId}>
                 <SelectTrigger>
@@ -170,14 +170,14 @@ export function KinshipCalculatorView({
                   className="gap-2 cursor-pointer shrink-0"
                 >
                   <GitFork className="h-4 w-4 rotate-180" />
-                  Highlight Path on Graph
+                  Show Connection on Tree
                 </Button>
               </div>
 
               <div className="space-y-2 pt-2 border-t border-border/60">
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                   <Sparkles className="h-3.5 w-3.5 text-primary" />
-                  Connection Chain ({result.pathPersonIds.length} nodes)
+                  How They Are Connected ({result.pathPersonIds.length} people)
                 </p>
 
                 <div className="flex flex-wrap items-center gap-2 pt-1">

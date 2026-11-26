@@ -15,7 +15,7 @@ async function HeaderAuthActions() {
     return (
       <>
         <Button asChild variant="outline" size="sm">
-          <Link href="/trees">Open Workspace</Link>
+          <Link href="/trees">My Family Trees</Link>
         </Button>
         <UserNav user={session.user} />
       </>
@@ -57,7 +57,7 @@ async function HeroAuthCtas() {
         </Link>
       </Button>
       <Button asChild variant="outline" size="lg" className="h-11 px-6">
-        <Link href="/sign-in">Sign in to Workspace</Link>
+        <Link href="/sign-in">Sign in</Link>
       </Button>
     </>
   );
@@ -89,18 +89,18 @@ export default function HomePage() {
 
           <div className="relative mx-auto max-w-4xl px-4 sm:px-6 text-center space-y-6">
             <Badge variant="secondary" className="px-3 py-1 text-xs font-medium">
-              Shikor · শিকড় — Modern Family Heritage &amp; Living Kinship
+              Shikor · শিকড় — Keep Your Family Story Alive
             </Badge>
 
             <h1 className="text-4xl sm:text-6xl font-bold tracking-tight text-foreground leading-[1.12]">
-              Map your roots.{" "}
+              Know your roots.{" "}
               <span className="text-primary">Connect every generation.</span>
             </h1>
 
             <p className="mx-auto max-w-2xl text-base sm:text-lg text-muted-foreground leading-relaxed">
-              Build interactive multi-generational family graphs, preserve life
-              stories and timelines, discover English &amp; বাংলা kinship ties,
-              and share securely with your extended family.
+              Create a living family tree across generations, preserve stories
+              and life milestones, see how everyone is related in English &amp;
+              বাংলা, and share privately with your family.
             </p>
 
             <div className="flex flex-wrap items-center justify-center gap-3 pt-3 min-h-11">
@@ -121,10 +121,10 @@ export default function HomePage() {
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
                 <GitFork className="h-5 w-5 rotate-180" />
               </div>
-              <h3 className="font-semibold">True Family DAG</h3>
+              <h3 className="font-semibold">Built for Real Families</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Handles multiple marriages, in-law branches, adoptive ties, and
-                cousin marriages without breaking or duplicating nodes.
+                Supports multiple marriages, in-law branches, adoptions, and
+                cousin marriages naturally—without messy duplicates.
               </p>
             </div>
 
@@ -132,10 +132,11 @@ export default function HomePage() {
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
                 <HeartHandshake className="h-5 w-5" />
               </div>
-              <h3 className="font-semibold">Kinship Pathfinder</h3>
+              <h3 className="font-semibold">How Are We Related?</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Click any two relatives to trace their connection in English and
-                Bengali (Chacha · চাচা, Fupu · ফুপু, Mamato Bhai · মামাতো ভাই).
+                Pick any two relatives to see how they&apos;re connected in
+                English and Bengali (Chacha · চাচা, Fupu · ফুপু, Mamato Bhai ·
+                মামাতো ভাই).
               </p>
             </div>
 
@@ -143,10 +144,10 @@ export default function HomePage() {
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
                 <Globe2 className="h-5 w-5" />
               </div>
-              <h3 className="font-semibold">Directory &amp; Diaspora Map</h3>
+              <h3 className="font-semibold">Directory &amp; World Map</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Filter living relatives by blood group, city, or branch, and
-                view where your extended family lives worldwide.
+                Find relatives by blood group or city in seconds, and see where
+                your extended family lives around the world.
               </p>
             </div>
 
@@ -154,10 +155,10 @@ export default function HomePage() {
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
                 <Lock className="h-5 w-5" />
               </div>
-              <h3 className="font-semibold">Collaborative &amp; Private</h3>
+              <h3 className="font-semibold">Private Family Sharing</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Invite cousins as Editors or share passcode-protected read-only
-                links straight to your family group chat.
+                Invite cousins to help update their branch, or send a
+                passcode-protected link straight to your family group chat.
               </p>
             </div>
           </div>

@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
-import { Database, Loader2, Plus } from "lucide-react";
+import { FolderDown, Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -92,7 +92,7 @@ export function CreateTreeActions({
         return;
       }
       toast.success(
-        `Imported ${res.personsCount} family members and ${res.partnershipsCount} marriages!`,
+        `Loaded ${res.personsCount} family members and ${res.partnershipsCount} marriages!`,
       );
       router.push(`/trees/${res.slug}`);
     });
@@ -111,9 +111,9 @@ export function CreateTreeActions({
           {isImporting ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
-            <Database className="h-4 w-4 text-primary" />
+            <FolderDown className="h-4 w-4 text-primary" />
           )}
-          Import Legacy SQL (150 Members)
+          Import Legacy Family Tree
         </Button>
       )}
 
@@ -128,15 +128,15 @@ export function CreateTreeActions({
           <DialogHeader>
             <DialogTitle>Create a Family Tree</DialogTitle>
             <DialogDescription>
-              Start a new tree workspace. You can add ancestors, spouses,
-              children, and invite family editors right on the canvas.
+              Give your family tree a name and add the first person. You can add
+              parents, spouses, siblings, and children right inside the tree.
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <FieldGroup className="gap-4">
               <Field className="gap-1.5" data-invalid={!!errors.name}>
-                <FieldLabel htmlFor="tree-name">Tree Name</FieldLabel>
+                <FieldLabel htmlFor="tree-name">Family Tree Name</FieldLabel>
                 <Input
                   id="tree-name"
                   placeholder="e.g. Maternal Family Tree (Nana Bari)"
@@ -147,12 +147,12 @@ export function CreateTreeActions({
 
               <Field className="gap-1.5" data-invalid={!!errors.description}>
                 <FieldLabel htmlFor="tree-desc">
-                  Description (optional)
+                  Short Note (optional)
                 </FieldLabel>
                 <Textarea
                   id="tree-desc"
                   rows={2}
-                  placeholder="Origin village, ancestral history, or branch notes..."
+                  placeholder="Ancestral village, family history, or a short welcome note..."
                   {...register("description")}
                 />
                 {errors.description && (
@@ -166,11 +166,11 @@ export function CreateTreeActions({
                   data-invalid={!!errors.firstPersonName}
                 >
                   <FieldLabel htmlFor="first-person">
-                    Starting Person Name
+                    First Person&apos;s Name
                   </FieldLabel>
                   <Input
                     id="first-person"
-                    placeholder="Your name or eldest ancestor"
+                    placeholder="Your name or an elder ancestor"
                     {...register("firstPersonName")}
                   />
                   {errors.firstPersonName && (
@@ -195,7 +195,7 @@ export function CreateTreeActions({
                           <SelectItem value="M">Male</SelectItem>
                           <SelectItem value="F">Female</SelectItem>
                           <SelectItem value="O">Other</SelectItem>
-                          <SelectItem value="U">Unknown</SelectItem>
+                          <SelectItem value="U">Prefer not to say</SelectItem>
                         </SelectContent>
                       </Select>
                     )}
@@ -219,8 +219,7 @@ export function CreateTreeActions({
                   htmlFor="claimAsSelf"
                   className="text-sm font-normal text-muted-foreground cursor-pointer"
                 >
-                  Link this starting person as &ldquo;This is me&rdquo; for
-                  automatic kinship badges
+                  This is me (automatically show how everyone is related to me)
                 </FieldLabel>
               </div>
             </FieldGroup>
@@ -237,7 +236,7 @@ export function CreateTreeActions({
                 {isSubmitting && (
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
                 )}
-                Create Tree
+                Create Family Tree
               </Button>
             </DialogFooter>
           </form>

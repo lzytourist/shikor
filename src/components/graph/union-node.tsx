@@ -4,7 +4,10 @@ import { memo } from "react";
 import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { ChevronDown, ChevronRight, Heart, HeartOff } from "lucide-react";
 
-import type { FamilyGraphNode, UnionNodeData } from "@/lib/graph-layout/family-elk";
+import type {
+  FamilyGraphNode,
+  UnionNodeData,
+} from "@/lib/graph-layout/family-elk";
 import { cn } from "@/lib/utils";
 
 function UnionNodeComponent({
@@ -15,7 +18,10 @@ function UnionNodeComponent({
     childCount,
     isCollapsed,
     isHighlighted,
+    isDimmed,
+    spotlight,
     onToggleCollapse,
+    onSelectUnion,
   } = data as UnionNodeData;
 
   const isSeparated =
@@ -23,13 +29,18 @@ function UnionNodeComponent({
 
   return (
     <div
+      onClick={(e) => {
+        e.stopPropagation();
+        onSelectUnion?.(spotlight);
+      }}
       className={cn(
-        "relative flex items-center justify-center gap-1 rounded-full border bg-card px-2 py-1 shadow-2xs transition-colors",
+        "relative flex items-center justify-center gap-1 rounded-full border bg-card px-2 py-1 shadow-2xs transition-all duration-200 cursor-pointer",
         isHighlighted
-          ? "border-primary bg-primary/15 text-primary ring-2 ring-primary/40"
-          : "border-border text-muted-foreground hover:border-primary/50",
+          ? "border-primary bg-primary/15 text-primary ring-2 ring-primary/40 scale-110"
+          : "border-border text-muted-foreground hover:border-primary/60",
+        isDimmed && "opacity-25 hover:opacity-80",
       )}
-      title={`Partnership (${partnership.status})`}
+      title="Click to highlight parents & children"
     >
       <Handle
         type="target"

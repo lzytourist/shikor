@@ -26,7 +26,7 @@ export default function TreeWorkspacePage(props: TreeWorkspacePageProps) {
         <div className="min-h-screen flex items-center justify-center bg-background">
           <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin text-primary" />
-            Loading family graph workspace...
+            Opening family tree...
           </div>
         </div>
       }

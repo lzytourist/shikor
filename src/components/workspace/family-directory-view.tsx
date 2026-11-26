@@ -163,12 +163,12 @@ export function FamilyDirectoryView({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Relative</TableHead>
-              <TableHead>Kinship to You</TableHead>
+              <TableHead>Family Member</TableHead>
+              <TableHead>Relation to You</TableHead>
               <TableHead>Status &amp; Birth</TableHead>
-              <TableHead>Blood</TableHead>
-              <TableHead>Location / Role</TableHead>
-              <TableHead className="text-right">Action</TableHead>
+              <TableHead>Blood Group</TableHead>
+              <TableHead>City / Profession</TableHead>
+              <TableHead className="text-right">View</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -297,7 +297,7 @@ export function FamilyDirectoryView({
                         className="h-8 gap-1.5 text-xs cursor-pointer"
                       >
                         <GitFork className="h-3.5 w-3.5 rotate-180" />
-                        Graph
+                        Show in Tree
                       </Button>
                     </TableCell>
                   </TableRow>

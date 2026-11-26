@@ -321,8 +321,8 @@ function PersonInspectorContent({
       }
       toast.success(
         isClaimedSelf
-          ? "Unlinked your profile."
-          : `Claimed ${person.displayName} as "This is me"!`,
+          ? "Removed 'This is me' mark."
+          : `Marked ${person.displayName} as "This is me"!`,
       );
     });
   };
@@ -478,7 +478,7 @@ function PersonInspectorContent({
               className="h-8 gap-1.5 text-xs cursor-pointer"
             >
               <Focus className="h-3.5 w-3.5 text-primary" />
-              Hourglass Focus
+              Focus Family Line
             </Button>
 
             {!isGuest && (
@@ -490,7 +490,7 @@ function PersonInspectorContent({
                 className="h-8 gap-1.5 text-xs cursor-pointer"
               >
                 <UserCheck className="h-3.5 w-3.5 text-primary" />
-                {isClaimedSelf ? "Claimed as You" : "This is me"}
+                {isClaimedSelf ? "Marked as You" : "This is me"}
               </Button>
             )}
 
@@ -627,7 +627,7 @@ function PersonInspectorContent({
 
                       <div className="grid grid-cols-2 gap-3">
                         <Field className="gap-1">
-                          <FieldLabel>Birth Date Precision</FieldLabel>
+                          <FieldLabel>Birth Date</FieldLabel>
                           <Select
                             value={birthPrecision}
                             onValueChange={(v) =>
@@ -638,7 +638,7 @@ function PersonInspectorContent({
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="unknown">Unknown</SelectItem>
+                              <SelectItem value="unknown">Not sure</SelectItem>
                               <SelectItem value="exact">Exact Date</SelectItem>
                               <SelectItem value="year">Year Only</SelectItem>
                               <SelectItem value="approx">
@@ -650,7 +650,7 @@ function PersonInspectorContent({
 
                         {birthPrecision === "exact" ? (
                           <Field className="gap-1">
-                            <FieldLabel>Birth Date</FieldLabel>
+                            <FieldLabel>Select Date</FieldLabel>
                             <Input
                               type="date"
                               value={birthDate}
@@ -659,7 +659,7 @@ function PersonInspectorContent({
                           </Field>
                         ) : birthPrecision !== "unknown" ? (
                           <Field className="gap-1">
-                            <FieldLabel>Birth Year / Text</FieldLabel>
+                            <FieldLabel>Birth Year</FieldLabel>
                             <Input
                               placeholder="e.g. ~1948 or 1965"
                               value={birthDateText}
@@ -682,7 +682,7 @@ function PersonInspectorContent({
                       {!isLiving && (
                         <div className="grid grid-cols-2 gap-3">
                           <Field className="gap-1">
-                            <FieldLabel>Death Date Precision</FieldLabel>
+                            <FieldLabel>Date of Passing</FieldLabel>
                             <Select
                               value={deathPrecision}
                               onValueChange={(v) =>
@@ -693,7 +693,7 @@ function PersonInspectorContent({
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="unknown">Unknown</SelectItem>
+                                <SelectItem value="unknown">Not sure</SelectItem>
                                 <SelectItem value="exact">
                                   Exact Date
                                 </SelectItem>
@@ -707,7 +707,7 @@ function PersonInspectorContent({
 
                           {deathPrecision === "exact" ? (
                             <Field className="gap-1">
-                              <FieldLabel>Death Date</FieldLabel>
+                              <FieldLabel>Select Date</FieldLabel>
                               <Input
                                 type="date"
                                 value={deathDate}
@@ -716,7 +716,7 @@ function PersonInspectorContent({
                             </Field>
                           ) : deathPrecision !== "unknown" ? (
                             <Field className="gap-1">
-                              <FieldLabel>Death Year / Text</FieldLabel>
+                              <FieldLabel>Year of Passing</FieldLabel>
                               <Input
                                 placeholder="e.g. ~2004"
                                 value={deathDateText}
@@ -942,11 +942,11 @@ function PersonInspectorContent({
 
                       <div className="space-y-2">
                         <p className="text-xs font-medium text-muted-foreground">
-                          Spouses / Unions ({familyConnections.spouses.length})
+                          Spouses ({familyConnections.spouses.length})
                         </p>
                         {familyConnections.spouses.length === 0 ? (
                           <p className="text-xs text-muted-foreground/70 italic">
-                            No partnerships recorded
+                            No spouse recorded
                           </p>
                         ) : (
                           <div className="flex flex-wrap gap-2">
