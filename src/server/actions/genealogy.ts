@@ -84,6 +84,8 @@ export interface UpdatePersonPayload {
   birthPlace?: string | null;
   currentCity?: string | null;
   currentCountry?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   contactPhone?: string | null;
   contactEmail?: string | null;
   avatarUrl?: string | null;
@@ -91,13 +93,35 @@ export interface UpdatePersonPayload {
   isTwin?: boolean;
 }
 
+function sanitizeCoord(
+  val: number | null | undefined,
+  min: number,
+  max: number,
+): number | null {
+  if (typeof val !== "number" || !Number.isFinite(val)) return null;
+  if (val < min || val > max) return null;
+  return Number(val.toFixed(6));
+}
+
 export async function updatePersonAction(input: UpdatePersonPayload) {
   try {
     const { tree } = await requireTreeEditor(input.treeId);
 
-    let coords: { latitude: number; longitude: number } | null = null;
-    if (input.currentCity?.trim() || input.currentCountry?.trim()) {
-      coords = await geocodeCityCountry(input.currentCity, input.currentCountry);
+    let latitude = sanitizeCoord(input.latitude, -90, 90);
+    let longitude = sanitizeCoord(input.longitude, -180, 180);
+
+    if (
+      (latitude === null || longitude === null) &&
+      (input.currentCity?.trim() || input.currentCountry?.trim())
+    ) {
+      const coords = await geocodeCityCountry(
+        input.currentCity,
+        input.currentCountry,
+      );
+      if (coords) {
+        latitude = Number(coords.latitude.toFixed(6));
+        longitude = Number(coords.longitude.toFixed(6));
+      }
     }
 
     const birthYear = parseYearFromInput(
@@ -146,8 +170,8 @@ export async function updatePersonAction(input: UpdatePersonPayload) {
         birthPlace: input.birthPlace?.trim() || null,
         currentCity: input.currentCity?.trim() || null,
         currentCountry: input.currentCountry?.trim() || null,
-        latitude: coords ? coords.latitude : null,
-        longitude: coords ? coords.longitude : null,
+        latitude,
+        longitude,
         contactPhone: input.contactPhone?.trim() || null,
         contactEmail: input.contactEmail?.trim() || null,
         avatarUrl: input.avatarUrl ?? undefined,
@@ -568,6 +592,85 @@ export async function deleteLifeEventAction(input: {
     return {
       ok: false as const,
       error: err instanceof Error ? err.message : "Failed to delete event.",
+    };
+  }
+}
+
+export async function removeParentChildLinkAction(input: {
+  treeId: string;
+  linkId: string;
+}) {
+  try {
+    const { tree } = await requireTreeEditor(input.treeId);
+    await db
+      .delete(parentChildLinks)
+      .where(
+        and(
+          eq(parentChildLinks.id, input.linkId),
+          eq(parentChildLinks.treeId, input.treeId),
+        ),
+      );
+    revalidatePath(`/trees/${tree.slug}`);
+    return { ok: true as const };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error:
+        err instanceof Error ? err.message : "Failed to remove relationship.",
+    };
+  }
+}
+
+export async function updatePartnershipStatusAction(input: {
+  treeId: string;
+  partnershipId: string;
+  status: PartnershipStatus;
+}) {
+  try {
+    const { tree } = await requireTreeEditor(input.treeId);
+    await db
+      .update(partnerships)
+      .set({ status: input.status })
+      .where(
+        and(
+          eq(partnerships.id, input.partnershipId),
+          eq(partnerships.treeId, input.treeId),
+        ),
+      );
+    revalidatePath(`/trees/${tree.slug}`);
+    return { ok: true as const };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error:
+        err instanceof Error
+          ? err.message
+          : "Failed to update marriage status.",
+    };
+  }
+}
+
+export async function removePartnershipAction(input: {
+  treeId: string;
+  partnershipId: string;
+}) {
+  try {
+    const { tree } = await requireTreeEditor(input.treeId);
+    await db
+      .delete(partnerships)
+      .where(
+        and(
+          eq(partnerships.id, input.partnershipId),
+          eq(partnerships.treeId, input.treeId),
+        ),
+      );
+    revalidatePath(`/trees/${tree.slug}`);
+    return { ok: true as const };
+  } catch (err) {
+    return {
+      ok: false as const,
+      error:
+        err instanceof Error ? err.message : "Failed to remove marriage link.",
     };
   }
 }

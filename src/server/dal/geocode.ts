@@ -65,3 +65,65 @@ export async function geocodeCityCountry(
     return null;
   }
 }
+
+export async function reverseGeocodeCoords(
+  latitude: number,
+  longitude: number,
+): Promise<{ city: string | null; country: string | null } | null> {
+  if (
+    !Number.isFinite(latitude) ||
+    !Number.isFinite(longitude) ||
+    latitude < -90 ||
+    latitude > 90 ||
+    longitude < -180 ||
+    longitude > 180
+  ) {
+    return null;
+  }
+
+  try {
+    const url = new URL("https://nominatim.openstreetmap.org/reverse");
+    url.searchParams.set("lat", String(latitude));
+    url.searchParams.set("lon", String(longitude));
+    url.searchParams.set("format", "jsonv2");
+    url.searchParams.set("zoom", "12");
+
+    const res = await fetch(url.toString(), {
+      headers: {
+        "User-Agent": "ShikorFamilyTreeApp/1.0 (local-dev)",
+        Accept: "application/json",
+      },
+      signal: AbortSignal.timeout(4000),
+    });
+
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      address?: {
+        city?: string;
+        town?: string;
+        village?: string;
+        state_district?: string;
+        county?: string;
+        state?: string;
+        country?: string;
+      };
+    };
+
+    const addr = data.address;
+    if (!addr) return null;
+
+    const city =
+      addr.city ||
+      addr.town ||
+      addr.village ||
+      addr.state_district ||
+      addr.county ||
+      addr.state ||
+      null;
+    const country = addr.country || null;
+
+    return { city, country };
+  } catch {
+    return null;
+  }
+}

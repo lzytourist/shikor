@@ -2,7 +2,7 @@ import { getSessionCookie } from "better-auth/cookies";
 import { type NextRequest, NextResponse } from "next/server";
 
 const AUTH_ROUTES = ["/sign-in", "/sign-up"];
-const PROTECTED_PREFIXES = ["/trees"];
+const PROTECTED_PREFIXES = ["/trees", "/profile"];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -29,5 +29,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/trees/:path*", "/sign-in", "/sign-up"],
+  matcher: ["/trees/:path*", "/profile/:path*", "/sign-in", "/sign-up"],
 };

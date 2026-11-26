@@ -12,6 +12,7 @@ import {
 
 import { UserNav } from "@/components/auth/user-nav";
 import { ShikorLogo } from "@/components/brand/shikor-logo";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { CreateTreeActions } from "@/components/trees/create-tree-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -189,13 +190,16 @@ export default function TreesWorkspacePage() {
       <header className="sticky top-0 z-30 border-b border-border/70 bg-background/85 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <ShikorLogo href="/trees" />
-          <Suspense
-            fallback={
-              <div className="h-9 w-28 rounded-full bg-muted animate-pulse" />
-            }
-          >
-            <AuthenticatedUserNav />
-          </Suspense>
+          <div className="flex items-center gap-2.5">
+            <ThemeToggle />
+            <Suspense
+              fallback={
+                <div className="h-9 w-28 rounded-full bg-muted animate-pulse" />
+              }
+            >
+              <AuthenticatedUserNav />
+            </Suspense>
+          </div>
         </div>
       </header>
 

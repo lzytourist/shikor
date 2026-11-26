@@ -55,6 +55,15 @@ function PersonNodeComponent({
         ? "bg-rose-500/12 text-rose-700 dark:text-rose-300 ring-rose-500/30"
         : "bg-muted text-muted-foreground ring-border";
 
+  const stripeColor =
+    person.gender === "M"
+      ? "bg-sky-500/75"
+      : person.gender === "F"
+        ? "bg-rose-500/75"
+        : "bg-muted-foreground/35";
+
+  const isActive = Boolean(selected || isFocused);
+
   return (
     <div
       onClick={(e) => {
@@ -68,23 +77,32 @@ function PersonNodeComponent({
       }}
       title="Click to view profile · Ctrl+Click two relatives to see how they're related"
       className={cn(
-        "group relative w-[236px] min-h-[92px] rounded-xl border bg-card px-3 py-2.5 shadow-xs transition-all duration-200 cursor-pointer select-none",
+        "group relative w-[236px] min-h-[92px] rounded-xl border bg-card px-3 pt-3 pb-2.5 shadow-xs transition-all duration-200 cursor-pointer select-none overflow-visible",
         "hover:border-primary/60 hover:shadow-md",
         person.isNameUnknown && "border-dashed bg-card/85",
-        (selected || isFocused) &&
-          "ring-2 ring-primary border-primary shadow-md",
+        isActive && "ring-2 ring-primary border-primary shadow-md",
         isPairAnchor &&
           "ring-2 ring-amber-500 border-amber-500 bg-amber-500/[0.06] shadow-lg scale-[1.02]",
         isHighlighted &&
           "ring-2 ring-primary bg-primary/[0.06] dark:bg-primary/[0.12] border-primary shadow-lg scale-[1.02]",
-        isDimmed && "opacity-25 saturate-50 hover:opacity-80",
+        isDimmed && "opacity-25 saturate-50 hover:opacity-85",
       )}
     >
+      {/* Subtle gender top accent bar */}
+      <span
+        aria-hidden="true"
+        className={cn(
+          "pointer-events-none absolute inset-x-3 top-0 h-[3px] rounded-b-full",
+          stripeColor,
+        )}
+      />
+
       {isPairAnchor && (
-        <span className="absolute -top-2.5 left-3 rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-semibold text-white shadow-xs">
-          Selected · Ctrl+Click another
+        <span className="absolute -top-2.5 left-3 rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-semibold text-white shadow-xs z-20">
+          1st Selected · Pick another
         </span>
       )}
+
       <Handle
         type="target"
         position={Position.Top}
@@ -143,7 +161,7 @@ function PersonNodeComponent({
                   "h-1.5 w-1.5 rounded-full shrink-0",
                   person.isLiving
                     ? "bg-emerald-500"
-                    : "bg-muted-foreground/50",
+                    : "bg-muted-foreground/45",
                 )}
               />
               {lifespanLabel}
@@ -166,13 +184,18 @@ function PersonNodeComponent({
       {canEdit && onQuickAdd && (
         <div
           onClick={(e) => e.stopPropagation()}
-          className="absolute -right-2 -top-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity z-20"
+          className={cn(
+            "absolute -right-2 -top-2 transition-opacity z-20",
+            isActive
+              ? "opacity-100"
+              : "opacity-0 group-hover:opacity-100 focus-within:opacity-100",
+          )}
         >
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                title="Quick add relative"
+                title="Add relative"
                 className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md hover:scale-105 transition-transform cursor-pointer"
               >
                 <Plus className="h-3.5 w-3.5" />
@@ -199,7 +222,7 @@ function PersonNodeComponent({
                 onClick={() => onQuickAdd(person.id, "spouse")}
                 className="cursor-pointer text-xs"
               >
-                + Add Spouse / Partner
+                + Add Spouse
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => onQuickAdd(person.id, "sibling")}

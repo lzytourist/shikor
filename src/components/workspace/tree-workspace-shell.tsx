@@ -14,8 +14,13 @@ import {
 import { UserNav } from "@/components/auth/user-nav";
 import { ShikorLogo } from "@/components/brand/shikor-logo";
 import { FamilyGraphCanvas } from "@/components/graph/family-graph-canvas";
+import {
+  PersonEditorSheet,
+  type PersonEditorTab,
+} from "@/components/person-drawer/person-editor-sheet";
 import { PersonInspectorSheet } from "@/components/person-drawer/person-inspector-sheet";
 import { QuickAddRelativeDialog } from "@/components/person-drawer/quick-add-relative-dialog";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -66,6 +71,9 @@ export function TreeWorkspaceShell({
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("graph");
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [inspectorOpen, setInspectorOpen] = useState(false);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editorInitialTab, setEditorInitialTab] =
+    useState<PersonEditorTab>("identity");
 
   const [hourglassMode, setHourglassMode] = useState(false);
   const [focusPersonId, setFocusPersonId] = useState<string | null>(
@@ -268,6 +276,8 @@ export function TreeWorkspaceShell({
               />
             )}
 
+            <ThemeToggle />
+
             {currentUser && <UserNav user={currentUser} />}
           </div>
         </div>
@@ -327,7 +337,7 @@ export function TreeWorkspaceShell({
         )}
       </main>
 
-      {/* Slide-Over Person Inspector */}
+      {/* Slide-Over Person Details Sidebar */}
       <PersonInspectorSheet
         open={inspectorOpen}
         onOpenChange={setInspectorOpen}
@@ -359,7 +369,28 @@ export function TreeWorkspaceShell({
           setInspectorOpen(false);
           handleOpenQuickAdd(id, rel);
         }}
+        onOpenEditor={(tab = "identity") => {
+          setInspectorOpen(false);
+          setEditorInitialTab(tab);
+          setEditorOpen(true);
+        }}
       />
+
+      {/* Bigger Dedicated Person Editor Sheet */}
+      {canEdit && (
+        <PersonEditorSheet
+          open={editorOpen}
+          onOpenChange={setEditorOpen}
+          initialTab={editorInitialTab}
+          treeId={tree.id}
+          person={selectedPerson}
+          allPersons={persons}
+          partnerships={partnerships}
+          parentChildLinks={parentChildLinks}
+          onOpenQuickAdd={handleOpenQuickAdd}
+          onDeleted={() => setSelectedPersonId(null)}
+        />
+      )}
 
       {/* Quick Add / Link Existing Modal */}
       {canEdit && (

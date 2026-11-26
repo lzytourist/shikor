@@ -15,6 +15,13 @@
       "when": 1795678898954,
       "tag": "0001_wide_morg",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795695866236,
+      "tag": "0002_high_skullbuster",
+      "breakpoints": true
     }
   ]
 }

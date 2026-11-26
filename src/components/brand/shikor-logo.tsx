@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { GitFork } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ShikorLogoProps {
@@ -34,15 +33,34 @@ export function ShikorLogo({
           iconBoxSize,
         )}
       >
-        <GitFork className={cn("rotate-180", iconSize)} />
+        {/* Custom Shikor root & branching canopy emblem */}
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+          className={iconSize}
+        >
+          <path d="M12 20V9" />
+          <path d="M12 14c-3 0-5.5 2-6.5 5" />
+          <path d="M12 14c3 0 5.5 2 6.5 5" />
+          <path d="M12 9c0-3-2.5-5-5.5-5 0 3 2.5 5 5.5 5Z" />
+          <path d="M12 9c0-3 2.5-5 5.5-5 0 3-2.5 5-5.5 5Z" />
+        </svg>
       </div>
       <div className="flex items-baseline gap-1.5">
-        <span className={cn("font-semibold tracking-tight text-foreground", textSize)}>
+        <span
+          className={cn(
+            "font-semibold tracking-tight text-foreground",
+            textSize,
+          )}
+        >
           Shikor
         </span>
-        <span className="text-xs font-medium text-muted-foreground">
-          শিকড়
-        </span>
+        <span className="text-xs font-medium text-muted-foreground">শিকড়</span>
       </div>
     </Link>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Background,
   Controls,
@@ -18,6 +18,7 @@ import {
   Focus,
   GitFork,
   HeartHandshake,
+  HelpCircle,
   Loader2,
   Maximize2,
   MousePointerClick,
@@ -38,6 +39,7 @@ import {
   type FamilyGraphNode,
 } from "@/lib/graph-layout/family-elk";
 import { calculateKinship } from "@/lib/kinship/engine";
+import { cn } from "@/lib/utils";
 
 const nodeTypes = {
   person: PersonNode,
@@ -91,10 +93,18 @@ function InnerFamilyGraph({
   const [hasInitialLayout, setHasInitialLayout] = useState(false);
   const [edgeSpotlight, setEdgeSpotlight] =
     useState<EdgeSpotlightPayload | null>(null);
+  const [compareMode, setCompareMode] = useState(false);
+  const [showLegend, setShowLegend] = useState(true);
   const [ctrlPair, setCtrlPair] = useState<{
     firstId: string;
     secondId: string | null;
   } | null>(null);
+
+  // Keep compareMode reachable inside stable node click callback
+  const compareModeRef = useRef(compareMode);
+  useEffect(() => {
+    compareModeRef.current = compareMode;
+  }, [compareMode]);
 
   const personById = useMemo(
     () => new Map(persons.map((p) => [p.id, p])),
@@ -113,18 +123,26 @@ function InnerFamilyGraph({
   const handleCtrlSelectPerson = useCallback((personId: string) => {
     setEdgeSpotlight(null);
     setCtrlPair((prev) => {
-      // No active selection OR a completed pair is already shown -> start fresh with this person as 1st
       if (!prev || prev.secondId !== null) {
         return { firstId: personId, secondId: null };
       }
-      // Clicking the same 1st person again cancels selection
       if (prev.firstId === personId) {
         return null;
       }
-      // 2nd Ctrl+Click -> complete the pair and reveal their connection!
       return { firstId: prev.firstId, secondId: personId };
     });
   }, []);
+
+  const handleNodeClick = useCallback(
+    (personId: string) => {
+      if (compareModeRef.current) {
+        handleCtrlSelectPerson(personId);
+        return;
+      }
+      onSelectPerson(personId);
+    },
+    [handleCtrlSelectPerson, onSelectPerson],
+  );
 
   const handleSelectUnion = useCallback((spotlight: EdgeSpotlightPayload) => {
     setCtrlPair(null);
@@ -150,13 +168,13 @@ function InnerFamilyGraph({
       if (e.key === "Escape") {
         setEdgeSpotlight(null);
         setCtrlPair(null);
+        setCompareMode(false);
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  // Compute kinship path when two people are Ctrl+Clicked
   const ctrlKinship = useMemo(() => {
     if (!ctrlPair?.firstId || !ctrlPair.secondId) return null;
     return calculateKinship({
@@ -168,7 +186,6 @@ function InnerFamilyGraph({
     });
   }, [ctrlPair, persons, partnerships, parentChildLinks]);
 
-  // Structural ELK layout ONLY runs when graph structure or view mode changes
   useEffect(() => {
     let cancelled = false;
 
@@ -182,7 +199,7 @@ function InnerFamilyGraph({
       claimedPersonId,
       kinshipBadgesById,
       canEdit,
-      onSelectPerson,
+      onSelectPerson: handleNodeClick,
       onCtrlSelectPerson: handleCtrlSelectPerson,
       onQuickAdd,
       onToggleCollapse: handleToggleCollapse,
@@ -215,7 +232,7 @@ function InnerFamilyGraph({
     claimedPersonId,
     kinshipBadgesById,
     canEdit,
-    onSelectPerson,
+    handleNodeClick,
     handleCtrlSelectPerson,
     onQuickAdd,
     handleToggleCollapse,
@@ -225,7 +242,6 @@ function InnerFamilyGraph({
     fitView,
   ]);
 
-  // Helper that turns an ordered list of pathPersonIds into exact unionIds & edgeIds along that chain
   const buildPathGraphSets = useCallback(
     (orderedPersonIds: string[]) => {
       const pSet = new Set(orderedPersonIds);
@@ -240,7 +256,6 @@ function InnerFamilyGraph({
       const uSet = new Set<string>();
       const eSet = new Set<string>();
 
-      // Spouse steps between consecutive path members
       for (const u of partnerships) {
         if (consecutivePairs.has(`${u.partner1Id}:${u.partner2Id}`)) {
           uSet.add(u.id);
@@ -249,7 +264,6 @@ function InnerFamilyGraph({
         }
       }
 
-      // Parent <-> Child steps between consecutive path members
       for (const l of parentChildLinks) {
         if (consecutivePairs.has(`${l.parentId}:${l.childId}`)) {
           if (l.partnershipId) {
@@ -278,7 +292,6 @@ function InnerFamilyGraph({
           ...buildPathGraphSets(ctrlKinship.pathPersonIds),
         };
       }
-      // Disconnected pair: highlight just the two selected nodes so user sees both
       return {
         active: true,
         personIds: new Set([ctrlPair.firstId, ctrlPair.secondId]),
@@ -417,7 +430,12 @@ function InnerFamilyGraph({
     ctrlPair?.secondId ? personById.get(ctrlPair.secondId) : null;
 
   return (
-    <div className="relative h-[calc(100vh-3.5rem)] w-full bg-muted/20 dark:bg-background">
+    <div
+      className={cn(
+        "relative h-[calc(100vh-3.5rem)] w-full bg-muted/20 dark:bg-background",
+        compareMode && "ring-2 ring-inset ring-amber-500/40",
+      )}
+    >
       <ReactFlow
         nodes={displayNodes}
         edges={displayEdges}
@@ -438,14 +456,11 @@ function InnerFamilyGraph({
         fitView
       >
         <Background gap={22} size={1} />
-        <Controls
-          showInteractive={false}
-          className="!bg-card !border-border !shadow-sm"
-        />
+        <Controls showInteractive={false} />
         <MiniMap
           pannable
           zoomable
-          className="!bg-card/90 !border !border-border !rounded-lg hidden md:block"
+          className="!bg-card/90 !border !border-border !rounded-xl hidden md:block shadow-sm"
           nodeColor={(n) =>
             n.type === "union" ? "var(--muted-foreground)" : "var(--primary)"
           }
@@ -478,6 +493,27 @@ function InnerFamilyGraph({
             </Button>
           </div>
 
+          <Button
+            size="sm"
+            variant={compareMode ? "default" : "outline"}
+            onClick={() => {
+              setCompareMode((prev) => {
+                const next = !prev;
+                if (!next) setCtrlPair(null);
+                return next;
+              });
+            }}
+            className={cn(
+              "h-9 gap-1.5 text-xs shadow-sm cursor-pointer",
+              compareMode
+                ? "bg-amber-500 hover:bg-amber-600 text-white border-amber-500"
+                : "bg-card/95 backdrop-blur-md",
+            )}
+          >
+            <HeartHandshake className="h-3.5 w-3.5" />
+            {compareMode ? "Comparing Two (Done)" : "Compare Two"}
+          </Button>
+
           {claimedPersonId && (
             <Button
               size="sm"
@@ -489,7 +525,7 @@ function InnerFamilyGraph({
               className="h-9 gap-1.5 text-xs bg-card/95 backdrop-blur-md shadow-sm cursor-pointer"
             >
               <Compass className="h-3.5 w-3.5 text-primary" />
-              Center on Me
+              <span className="hidden sm:inline">Center on Me</span>
             </Button>
           )}
 
@@ -500,7 +536,7 @@ function InnerFamilyGraph({
             className="h-9 gap-1.5 text-xs bg-card/95 backdrop-blur-md shadow-sm cursor-pointer"
           >
             <Maximize2 className="h-3.5 w-3.5" />
-            Fit All
+            <span className="hidden sm:inline">Fit All</span>
           </Button>
 
           {collapsedUnionIds.size > 0 && (
@@ -516,7 +552,48 @@ function InnerFamilyGraph({
           )}
         </Panel>
 
+        {/* Bottom-left subtle legend & controls guide */}
+        <Panel position="bottom-left" className="hidden sm:block ml-12">
+          {showLegend ? (
+            <div className="flex items-center gap-3 rounded-xl border bg-card/90 backdrop-blur-md px-3 py-1.5 text-[11px] text-muted-foreground shadow-sm">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                Living
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-muted-foreground/45" />
+                Passed
+              </span>
+              <span className="text-border">|</span>
+              <span>Click card: Profile</span>
+              <span>·</span>
+              <span>Click line: Highlight</span>
+              <span>·</span>
+              <span>Ctrl+Click two: Relation</span>
+              <button
+                type="button"
+                onClick={() => setShowLegend(false)}
+                title="Hide guide"
+                className="ml-1 hover:text-foreground cursor-pointer"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          ) : (
+            <Button
+              size="icon"
+              variant="outline"
+              onClick={() => setShowLegend(true)}
+              title="Show tree guide"
+              className="h-8 w-8 rounded-full bg-card/90 shadow-sm cursor-pointer"
+            >
+              <HelpCircle className="h-4 w-4 text-muted-foreground" />
+            </Button>
+          )}
+        </Panel>
+
         {(hourglassMode && focusPerson) ||
+        compareMode ||
         ctrlPair ||
         edgeSpotlight ||
         highlightedPersonIds.length > 0 ? (
@@ -543,15 +620,38 @@ function InnerFamilyGraph({
               </Badge>
             )}
 
+            {compareMode && !ctrlPair && (
+              <div className="flex items-center gap-2 rounded-xl border border-amber-500/40 bg-card/95 backdrop-blur-md px-3.5 py-2 text-xs shadow-md">
+                <MousePointerClick className="h-4 w-4 text-amber-500 shrink-0" />
+                <span>
+                  Tap or click <strong>two relatives</strong> to see how
+                  they&apos;re related
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setCompareMode(false)}
+                  className="text-muted-foreground hover:text-foreground cursor-pointer ml-1"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
+
             {ctrlPair && !ctrlPair.secondId && pairFirstPerson && (
               <div className="flex items-center gap-2 rounded-xl border border-amber-500/40 bg-card/95 backdrop-blur-md px-3.5 py-2 text-xs shadow-md">
                 <MousePointerClick className="h-4 w-4 text-amber-500 shrink-0" />
                 <span>
                   Selected <strong>{pairFirstPerson.displayName}</strong> —{" "}
-                  <kbd className="rounded border bg-muted px-1 py-0.5 text-[10px] font-mono">
-                    Ctrl+Click
-                  </kbd>{" "}
-                  another relative to see how they&apos;re related
+                  {compareMode ? (
+                    <>click another relative</>
+                  ) : (
+                    <>
+                      <kbd className="rounded border bg-muted px-1 py-0.5 text-[10px] font-mono">
+                        Ctrl+Click
+                      </kbd>{" "}
+                      another relative
+                    </>
+                  )}
                 </span>
                 <button
                   type="button"

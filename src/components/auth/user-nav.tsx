@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { Loader2, LogOut, Moon, Sun, Trees } from "lucide-react";
+import { Loader2, LogOut, Moon, Sun, Trees, UserCog } from "lucide-react";
 import { toast } from "sonner";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -84,25 +84,19 @@ export function UserNav({ user }: UserNavProps) {
         <DropdownMenuSeparator />
 
         <DropdownMenuItem
+          onClick={() => router.push("/profile")}
+          className="cursor-pointer gap-2"
+        >
+          <UserCog className="h-4 w-4 text-muted-foreground" />
+          <span>My Profile &amp; Location</span>
+        </DropdownMenuItem>
+
+        <DropdownMenuItem
           onClick={() => router.push("/trees")}
           className="cursor-pointer gap-2"
         >
           <Trees className="h-4 w-4 text-muted-foreground" />
           <span>My Family Trees</span>
-        </DropdownMenuItem>
-
-        <DropdownMenuItem
-          onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-          className="cursor-pointer gap-2"
-        >
-          {resolvedTheme === "dark" ? (
-            <Sun className="h-4 w-4 text-muted-foreground" />
-          ) : (
-            <Moon className="h-4 w-4 text-muted-foreground" />
-          )}
-          <span>
-            Switch to {resolvedTheme === "dark" ? "Light" : "Dark"} Mode
-          </span>
         </DropdownMenuItem>
 
         <DropdownMenuSeparator />
