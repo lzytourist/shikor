@@ -1,13 +1,28 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
-import * as maplibregl from "maplibre-gl";
+import {
+  LngLatBounds,
+  Map as MapLibreMap,
+  Marker,
+  NavigationControl,
+  setWorkerUrl,
+} from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { Globe2, MapPin } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Person } from "@/db/schema";
+
+if (typeof window !== "undefined") {
+  setWorkerUrl(
+    new URL(
+      "maplibre-gl/dist/maplibre-gl-worker.mjs",
+      import.meta.url,
+    ).toString(),
+  );
+}
 
 interface FamilyMapViewProps {
   persons: Person[];
@@ -24,7 +39,7 @@ interface CityCluster {
 
 export function FamilyMapView({ persons, onSelectPerson }: FamilyMapViewProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<maplibregl.Map | null>(null);
+  const mapRef = useRef<MapLibreMap | null>(null);
 
   const clusters = useMemo<CityCluster[]>(() => {
     const map = new Map<string, CityCluster>();
@@ -54,17 +69,17 @@ export function FamilyMapView({ persons, onSelectPerson }: FamilyMapViewProps) {
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
-    const map = new maplibregl.Map({
+    const map = new MapLibreMap({
       container: mapContainerRef.current,
       style: "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json",
       center: [90.4125, 23.8103], // Default centered on Dhaka, Bangladesh
       zoom: clusters.length > 0 ? 3.5 : 5.5,
     });
 
-    map.addControl(new maplibregl.NavigationControl(), "top-right");
+    map.addControl(new NavigationControl(), "top-right");
     mapRef.current = map;
 
-    const markers: maplibregl.Marker[] = [];
+    const markers: Marker[] = [];
     for (const cluster of clusters) {
       const el = document.createElement("button");
       el.type = "button";
@@ -78,7 +93,7 @@ export function FamilyMapView({ persons, onSelectPerson }: FamilyMapViewProps) {
         });
       };
 
-      const marker = new maplibregl.Marker({ element: el })
+      const marker = new Marker({ element: el })
         .setLngLat([cluster.longitude, cluster.latitude])
         .addTo(map);
       markers.push(marker);
@@ -88,7 +103,7 @@ export function FamilyMapView({ persons, onSelectPerson }: FamilyMapViewProps) {
       map.setCenter([clusters[0].longitude, clusters[0].latitude]);
       map.setZoom(8);
     } else if (clusters.length > 1) {
-      const bounds = new maplibregl.LngLatBounds();
+      const bounds = new LngLatBounds();
       for (const c of clusters) {
         bounds.extend([c.longitude, c.latitude]);
       }

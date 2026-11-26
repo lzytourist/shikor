@@ -188,7 +188,6 @@ function InnerFamilyGraph({
         minZoom={0.08}
         maxZoom={1.8}
         fitView
-        proOptions={{ hideAttribution: true }}
       >
         <Background gap={22} size={1} />
         <Controls showInteractive={false} className="!bg-card !border-border !shadow-sm" />
