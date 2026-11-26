@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useTheme } from "next-themes";
-import { Loader2, LogOut, Moon, Sun, Trees, UserCog } from "lucide-react";
+import { Loader2, LogOut, Trees, UserCog } from "lucide-react";
 import { toast } from "sonner";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -37,7 +36,6 @@ function getInitials(name: string) {
 
 export function UserNav({ user }: UserNavProps) {
   const router = useRouter();
-  const { resolvedTheme, setTheme } = useTheme();
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const handleSignOut = async () => {

@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PersonCombobox } from "@/components/workspace/person-combobox";
 import type {
   Gender,
   LineageType,
@@ -399,24 +400,13 @@ export function QuickAddRelativeDialog({
 
                 <Field className="gap-1.5">
                   <FieldLabel>Select Relative in Tree</FieldLabel>
-                  <Select
+                  <PersonCombobox
+                    persons={allPersons.filter((p) => p.id !== anchorPerson.id)}
                     value={existingTargetId}
                     onValueChange={setExistingTargetId}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose a person..." />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-64">
-                      {allPersons
-                        .filter((p) => p.id !== anchorPerson.id)
-                        .map((p) => (
-                          <SelectItem key={p.id} value={p.id}>
-                            {p.displayName}
-                            {p.nickname ? ` (${p.nickname})` : ""}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
+                    placeholder="Search and choose a person..."
+                    modal={true}
+                  />
                 </Field>
 
                 {existingLinkKind !== "spouse" && (

@@ -12,13 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { PersonCombobox } from "@/components/workspace/person-combobox";
 import type { ParentChildLink, Partnership, Person } from "@/db/schema";
 import { calculateKinship } from "@/lib/kinship/engine";
 
@@ -86,20 +80,13 @@ export function KinshipCalculatorView({
               <label className="text-xs font-medium text-muted-foreground">
                 First Person
               </label>
-              <Select value={personAId} onValueChange={setPersonAId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose Person A" />
-                </SelectTrigger>
-                <SelectContent className="max-h-72">
-                  {persons.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.displayName}
-                      {p.nickname ? ` (${p.nickname})` : ""}
-                      {claimedPersonId === p.id ? " — [You]" : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <PersonCombobox
+                persons={persons}
+                value={personAId}
+                onValueChange={setPersonAId}
+                claimedPersonId={claimedPersonId}
+                placeholder="Choose First Person..."
+              />
             </div>
 
             <Button
@@ -111,7 +98,7 @@ export function KinshipCalculatorView({
                 setPersonAId(personBId);
                 setPersonBId(personAId);
               }}
-              className="cursor-pointer mx-auto"
+              className="cursor-pointer mx-auto h-10 w-10"
             >
               <ArrowLeftRight className="h-4 w-4" />
             </Button>
@@ -120,20 +107,13 @@ export function KinshipCalculatorView({
               <label className="text-xs font-medium text-muted-foreground">
                 Second Person
               </label>
-              <Select value={personBId} onValueChange={setPersonBId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose Person B" />
-                </SelectTrigger>
-                <SelectContent className="max-h-72">
-                  {persons.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.displayName}
-                      {p.nickname ? ` (${p.nickname})` : ""}
-                      {claimedPersonId === p.id ? " — [You]" : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <PersonCombobox
+                persons={persons}
+                value={personBId}
+                onValueChange={setPersonBId}
+                claimedPersonId={claimedPersonId}
+                placeholder="Choose Second Person..."
+              />
             </div>
           </div>
 
