@@ -1,0 +1,53 @@
+name: Migrate Database
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "src/db/migrations/**"
+      - "drizzle.config.ts"
+      - ".github/workflows/migrate-db.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: db-migrate
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    name: Run Drizzle Migrations
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify DB_URL secret is configured
+        env:
+          DATABASE_URL: ${{ secrets.DB_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::Missing DB_URL repository secret."
+            exit 1
+          fi
+
+      - name: Run Drizzle migrations
+        env:
+          DATABASE_URL: ${{ secrets.DB_URL }}
+        run: pnpm db:migrate
