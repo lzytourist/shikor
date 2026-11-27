@@ -105,7 +105,7 @@ async function TreesWorkspaceBody() {
                   <CardTitle className="text-xl group-hover:text-primary transition-colors">
                     <Link href={`/trees/${tree.slug}`}>{tree.name}</Link>
                   </CardTitle>
-                  <CardDescription className="line-clamp-2 mt-1.5 min-h-[2.5rem]">
+                  <CardDescription className="line-clamp-2 mt-1.5 min-h-10">
                     {tree.description ||
                       "Family tree, stories, and relative directory."}
                   </CardDescription>
@@ -176,7 +176,7 @@ async function TreesWorkspaceBody() {
 
 export default function TreesWorkspacePage() {
   return (
-    <div className="min-h-screen flex flex-col bg-muted/25 dark:bg-background">
+    <div className="min-h-screen flex flex-col bg-muted/25">
       <header className="sticky top-0 z-30 border-b border-border/70 bg-background/85 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <ShikorLogo href="/trees" />

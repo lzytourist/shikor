@@ -241,8 +241,25 @@ async function connectNewPersonToAnchor(params: {
       (l) => l.parentRole === oppositeRole,
     );
 
+    if (
+      lineage === "biological" &&
+      existingParentLinks.some((l) => l.parentRole === relation)
+    ) {
+      throw new Error(
+        `${anchor.displayName} already has a ${relation}. Use "Already in Tree" to link a different one.`,
+      );
+    }
+
     let partnershipId: string | null = null;
     if (otherParentLink && lineage === "biological") {
+      const existingUnion = otherParentLink.partnershipId
+        ? await tx.query.partnerships.findFirst({
+            where: eq(partnerships.id, otherParentLink.partnershipId),
+          })
+        : null;
+      if (existingUnion) {
+        throw new Error("Both parents are already recorded for this person.");
+      }
       const [union] = await tx
         .insert(partnerships)
         .values({
@@ -274,11 +291,28 @@ async function connectNewPersonToAnchor(params: {
   }
 
   if (relation === "spouse") {
+    const prior = await tx
+      .select()
+      .from(partnerships)
+      .where(eq(partnerships.treeId, treeId));
+    const order =
+      prior.filter(
+        (u) => u.partner1Id === anchor.id || u.partner2Id === anchor.id,
+      ).length + 1;
+    // Husband first when known, so layouts stay consistent.
+    const createdIsMale =
+      (
+        await tx.query.persons.findFirst({
+          where: eq(persons.id, createdPersonId),
+        })
+      )?.gender === "M";
+    const anchorFirst = !(createdIsMale && anchor.gender !== "M");
     await tx.insert(partnerships).values({
       treeId,
-      partner1Id: anchor.id,
-      partner2Id: createdPersonId,
+      partner1Id: anchorFirst ? anchor.id : createdPersonId,
+      partner2Id: anchorFirst ? createdPersonId : anchor.id,
       status: partnershipStatus ?? "married",
+      marriageOrder: order,
     });
     return;
   }

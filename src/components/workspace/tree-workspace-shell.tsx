@@ -422,6 +422,7 @@ export function TreeWorkspaceShell({
           />
 
           <QuickAddRelativeDialog
+            key={`${quickAddState.anchorPersonId}-${quickAddState.relation}`}
             open={quickAddState.open}
             onOpenChange={(open) =>
               setQuickAddState((prev) => ({ ...prev, open }))
