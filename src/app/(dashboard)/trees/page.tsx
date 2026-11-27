@@ -42,10 +42,6 @@ async function TreesWorkspaceBody() {
     listUserTrees(),
   ]);
 
-  const hasLegacyTree = trees.some((t) =>
-    t.slug.startsWith("legacy-family-tree"),
-  );
-
   return (
     <main className="mx-auto flex-1 w-full max-w-6xl px-4 sm:px-6 py-10 space-y-8">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -59,10 +55,7 @@ async function TreesWorkspaceBody() {
           </p>
         </div>
 
-        <CreateTreeActions
-          defaultUserName={user.name}
-          showLegacyImportButton={!hasLegacyTree}
-        />
+        <CreateTreeActions defaultUserName={user.name} />
       </div>
 
       {trees.length === 0 ? (
@@ -73,15 +66,12 @@ async function TreesWorkspaceBody() {
             </div>
             <CardTitle className="text-xl">No family trees yet</CardTitle>
             <CardDescription className="text-sm leading-relaxed">
-              Start a new family tree from scratch, or import a legacy SQL
-              family tree to get started right away.
+              Create your first family tree to start mapping generations,
+              preserving life stories, and inviting relatives to collaborate.
             </CardDescription>
           </CardHeader>
           <CardContent className="pb-12 flex justify-center">
-            <CreateTreeActions
-              defaultUserName={user.name}
-              showLegacyImportButton={true}
-            />
+            <CreateTreeActions defaultUserName={user.name} />
           </CardContent>
         </Card>
       ) : (

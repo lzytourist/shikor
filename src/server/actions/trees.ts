@@ -12,7 +12,6 @@ import {
   type CreateTreeValues,
 } from "@/lib/validations/trees";
 import { requireUser } from "@/server/dal/auth";
-import { importLegacyFamilyTree } from "@/server/importers/legacy-sql";
 
 export async function createFamilyTreeAction(input: CreateTreeValues) {
   const { user } = await requireUser();
@@ -74,28 +73,4 @@ export async function createFamilyTreeAction(input: CreateTreeValues) {
 
   revalidatePath("/trees");
   return { ok: true as const, slug: created.slug };
-}
-
-export async function importLegacyTreeAction() {
-  const { user } = await requireUser();
-
-  try {
-    const result = await importLegacyFamilyTree({
-      ownerUserId: user.id,
-    });
-    revalidatePath("/trees");
-    return {
-      ok: true as const,
-      slug: result.slug,
-      personsCount: result.personsCount,
-      partnershipsCount: result.partnershipsCount,
-    };
-  } catch (err) {
-    const message =
-      err instanceof Error ? err.message : "Failed to import legacy SQL.";
-    return {
-      ok: false as const,
-      error: message,
-    };
-  }
 }

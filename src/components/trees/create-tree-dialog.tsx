@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
-import { FolderDown, Loader2, Plus } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -37,23 +37,17 @@ import {
   createTreeSchema,
   type CreateTreeValues,
 } from "@/lib/validations/trees";
-import {
-  createFamilyTreeAction,
-  importLegacyTreeAction,
-} from "@/server/actions/trees";
+import { createFamilyTreeAction } from "@/server/actions/trees";
 
 interface CreateTreeActionsProps {
   defaultUserName: string;
-  showLegacyImportButton?: boolean;
 }
 
 export function CreateTreeActions({
   defaultUserName,
-  showLegacyImportButton = true,
 }: CreateTreeActionsProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [isImporting, startImportTransition] = useTransition();
 
   const {
     register,
@@ -84,39 +78,8 @@ export function CreateTreeActions({
     router.push(`/trees/${res.slug}`);
   };
 
-  const handleImportLegacy = () => {
-    startImportTransition(async () => {
-      const res = await importLegacyTreeAction();
-      if (!res.ok) {
-        toast.error(res.error);
-        return;
-      }
-      toast.success(
-        `Loaded ${res.personsCount} family members and ${res.partnershipsCount} marriages!`,
-      );
-      router.push(`/trees/${res.slug}`);
-    });
-  };
-
   return (
     <div className="flex flex-wrap items-center gap-2.5">
-      {showLegacyImportButton && (
-        <Button
-          type="button"
-          variant="outline"
-          disabled={isImporting}
-          onClick={handleImportLegacy}
-          className="gap-2 cursor-pointer"
-        >
-          {isImporting ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <FolderDown className="h-4 w-4 text-primary" />
-          )}
-          Import Legacy Family Tree
-        </Button>
-      )}
-
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
           <Button className="gap-2 cursor-pointer">
