@@ -76,7 +76,7 @@ export function QuickAddRelativeDialog({
   const [lineageType, setLineageType] = useState<LineageType>("biological");
   const [partnershipStatus, setPartnershipStatus] =
     useState<PartnershipStatus>("married");
-  const [selectedUnionId, setSelectedUnionId] = useState<string>("auto");
+  const [pickedUnionId, setSelectedUnionId] = useState<string | null>(null);
 
   // Link existing state (great for cousin marriages!)
   const [existingTargetId, setExistingTargetId] = useState<string>("");
@@ -89,6 +89,10 @@ export function QuickAddRelativeDialog({
   const anchorUnions = partnerships.filter(
     (u) => u.partner1Id === anchorPerson.id || u.partner2Id === anchorPerson.id,
   );
+  // Default to the partner when there is exactly one, but always let the user
+  // choose "single parent" so a child of A alone is not attached to B.
+  const selectedUnionId =
+    pickedUnionId ?? (anchorUnions.length === 1 ? anchorUnions[0].id : "auto");
   const personById = new Map(allPersons.map((p) => [p.id, p]));
 
   const handleRelationChange = (val: QuickRelativeRelation) => {
@@ -310,19 +314,19 @@ export function QuickAddRelativeDialog({
                       </Select>
                     </Field>
 
-                    {relation === "child" && anchorUnions.length > 1 && (
+                    {relation === "child" && anchorUnions.length > 0 && (
                       <Field className="gap-1.5">
                         <FieldLabel>Other Parent</FieldLabel>
                         <Select
                           value={selectedUnionId}
-                          onValueChange={setSelectedUnionId}
+                          onValueChange={(v) => setSelectedUnionId(v)}
                         >
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="auto">
-                              Single parent only
+                              Only {anchorPerson.displayName} (no other parent)
                             </SelectItem>
                             {anchorUnions.map((u) => {
                               const spId =

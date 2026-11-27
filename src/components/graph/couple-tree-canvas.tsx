@@ -280,7 +280,7 @@ function buildLayout(
     b.children.forEach(walk);
   };
   roots.forEach(walk);
-  return { placements, roots };
+  return { placements, roots, parentsOf };
 }
 
 interface InnerProps {
@@ -304,7 +304,7 @@ function Inner({
 }: InnerProps) {
   const { nodes, edges } = useMemo(() => {
     const byId = new Map(persons.map((p) => [p.id, p]));
-    const { placements, roots } = buildLayout(
+    const { placements, roots, parentsOf } = buildLayout(
       persons,
       partnerships,
       parentChildLinks,
@@ -340,20 +340,41 @@ function Inner({
           style: { ...line, stroke: "var(--primary)", strokeOpacity: 0.7 },
         });
       }
-      if (b.children.length) {
-        const anchorId = `a:${b.members[0]}`;
+      // Group children by which block members are actually their parents, so a
+      // child of only one spouse hangs from that spouse, not the whole couple.
+      const blockW =
+        b.members.length * CARD_W + (b.members.length - 1) * SPOUSE_GAP;
+      const left = b.centerX - blockW / 2;
+      const groups = new Map<string, { xs: number[]; kids: Block[] }>();
+      for (const c of b.children) {
+        const ps = parentsOf.get(c.members[0]);
+        let idxs = b.members
+          .map((m, i) => (ps?.has(m) ? i : -1))
+          .filter((i) => i >= 0);
+        if (idxs.length === 0) idxs = b.members.map((_, i) => i);
+        const key = idxs.join(",");
+        const g = groups.get(key) ?? {
+          xs: idxs.map((i) => left + i * (CARD_W + SPOUSE_GAP) + CARD_W / 2),
+          kids: [],
+        };
+        g.kids.push(c);
+        groups.set(key, g);
+      }
+      for (const [key, g] of groups) {
+        const anchorId = `a:${b.members[0]}:${key}`;
+        const ax = g.xs.reduce((t, v) => t + v, 0) / g.xs.length;
         nodes.push({
           id: anchorId,
           type: "anchor",
           draggable: false,
           selectable: false,
           position: {
-            x: b.centerX - 4,
+            x: ax - 4,
             y: b.depth * (CARD_H + LEVEL_GAP) + CARD_H - 4,
           },
           data: {},
         });
-        for (const c of b.children) {
+        for (const c of g.kids) {
           edges.push({
             id: `c:${anchorId}-${c.members[0]}`,
             source: anchorId,

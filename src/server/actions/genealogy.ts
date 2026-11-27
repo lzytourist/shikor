@@ -333,22 +333,8 @@ async function connectNewPersonToAnchor(params: {
         coParentId =
           union.partner1Id === anchor.id ? union.partner2Id : union.partner1Id;
       }
-    } else {
-      const anchorUnions = await tx
-        .select()
-        .from(partnerships)
-        .where(eq(partnerships.treeId, treeId));
-      const myUnions = anchorUnions.filter(
-        (u) => u.partner1Id === anchor.id || u.partner2Id === anchor.id,
-      );
-      if (myUnions.length === 1) {
-        partnershipId = myUnions[0].id;
-        coParentId =
-          myUnions[0].partner1Id === anchor.id
-            ? myUnions[0].partner2Id
-            : myUnions[0].partner1Id;
-      }
     }
+    // No union chosen = single parent; never guess a co-parent.
 
     const anchorRole =
       anchor.gender === "M"
