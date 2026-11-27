@@ -192,7 +192,7 @@ export async function buildLayoutedFamilyGraph(params: {
   const {
     persons,
     partnerships,
-    parentChildLinks,
+    parentChildLinks: rawParentChildLinks,
     focusPersonId,
     hourglassMode,
     collapsedUnionIds,
@@ -205,6 +205,38 @@ export async function buildLayoutedFamilyGraph(params: {
     onToggleCollapse,
     onSelectUnion,
   } = params;
+
+  // Links saved without a partnership (e.g. added one parent at a time, or
+  // linked to an existing person) should still hang under the parents' union
+  // when both parents are partners, so full siblings render together.
+  const parentChildLinks = (() => {
+    const linkParents = new Map<string, Set<string>>();
+    for (const l of rawParentChildLinks) {
+      const set = linkParents.get(l.childId) ?? new Set<string>();
+      set.add(l.parentId);
+      linkParents.set(l.childId, set);
+    }
+    const unionByPair = new Map<string, string>();
+    for (const u of [...partnerships].sort(
+      (a, b) => (a.marriageOrder ?? 1) - (b.marriageOrder ?? 1),
+    )) {
+      for (const key of [
+        `${u.partner1Id}|${u.partner2Id}`,
+        `${u.partner2Id}|${u.partner1Id}`,
+      ]) {
+        if (!unionByPair.has(key)) unionByPair.set(key, u.id);
+      }
+    }
+    return rawParentChildLinks.map((l) => {
+      if (l.partnershipId) return l;
+      for (const other of linkParents.get(l.childId) ?? []) {
+        if (other === l.parentId) continue;
+        const unionId = unionByPair.get(`${l.parentId}|${other}`);
+        if (unionId) return { ...l, partnershipId: unionId };
+      }
+      return l;
+    });
+  })();
 
   let allowedIds = new Set(persons.map((p) => p.id));
   if (hourglassMode && focusPersonId && allowedIds.has(focusPersonId)) {
