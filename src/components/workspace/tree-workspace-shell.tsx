@@ -14,6 +14,7 @@ import {
 
 import { UserNav } from "@/components/auth/user-nav";
 import { ShikorLogo } from "@/components/brand/shikor-logo";
+import { CoupleTreeCanvas } from "@/components/graph/couple-tree-canvas";
 import { FamilyGraphCanvas } from "@/components/graph/family-graph-canvas";
 import { AddPersonDialog } from "@/components/person-drawer/add-person-dialog";
 import {
@@ -77,6 +78,9 @@ export function TreeWorkspaceShell({
   const [editorInitialTab, setEditorInitialTab] =
     useState<PersonEditorTab>("identity");
 
+  const [graphStyle, setGraphStyle] = useState<"classic" | "couples">(
+    "classic",
+  );
   const [hourglassMode, setHourglassMode] = useState(false);
   const [focusPersonId, setFocusPersonId] = useState<string | null>(
     claimedPersonId ?? tree.rootPersonId ?? persons[0]?.id ?? null,
@@ -298,8 +302,42 @@ export function TreeWorkspaceShell({
       </header>
 
       {/* Active Workspace View */}
-      <main className="flex-1">
+      <main className="relative flex-1">
         {activeTab === "graph" && (
+          <div className="absolute right-3 top-3 z-20 flex rounded-lg border bg-card/95 p-0.5 text-xs shadow-sm">
+            {(
+              [
+                ["classic", "Classic"],
+                ["couples", "Couple blocks (beta)"],
+              ] as const
+            ).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setGraphStyle(key)}
+                className={`rounded-md px-2.5 py-1 transition ${
+                  graphStyle === key
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+        {activeTab === "graph" && graphStyle === "couples" && (
+          <CoupleTreeCanvas
+            persons={persons}
+            partnerships={partnerships}
+            parentChildLinks={parentChildLinks}
+            claimedPersonId={claimedPersonId}
+            selectedPersonId={selectedPersonId}
+            kinshipBadgesById={kinshipBadgesById}
+            onSelectPerson={handleSelectPerson}
+          />
+        )}
+        {activeTab === "graph" && graphStyle === "classic" && (
           <FamilyGraphCanvas
             persons={persons}
             partnerships={partnerships}
