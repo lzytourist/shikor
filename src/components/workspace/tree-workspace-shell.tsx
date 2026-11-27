@@ -14,6 +14,7 @@ import {
 
 import { UserNav } from "@/components/auth/user-nav";
 import { ShikorLogo } from "@/components/brand/shikor-logo";
+import { NetworkTreeCanvas } from "@/components/graph/network-tree-canvas";
 import { CoupleTreeCanvas } from "@/components/graph/couple-tree-canvas";
 import { FamilyGraphCanvas } from "@/components/graph/family-graph-canvas";
 import { AddPersonDialog } from "@/components/person-drawer/add-person-dialog";
@@ -78,7 +79,7 @@ export function TreeWorkspaceShell({
   const [editorInitialTab, setEditorInitialTab] =
     useState<PersonEditorTab>("identity");
 
-  const [graphStyle, setGraphStyle] = useState<"classic" | "couples">(
+  const [graphStyle, setGraphStyle] = useState<"classic" | "couples" | "network">(
     "classic",
   );
   const [hourglassMode, setHourglassMode] = useState(false);
@@ -309,6 +310,7 @@ export function TreeWorkspaceShell({
               [
                 ["classic", "Classic"],
                 ["couples", "Couple blocks (beta)"],
+                ["network", "Network (beta)"],
               ] as const
             ).map(([key, label]) => (
               <button
@@ -334,6 +336,16 @@ export function TreeWorkspaceShell({
             claimedPersonId={claimedPersonId}
             selectedPersonId={selectedPersonId}
             kinshipBadgesById={kinshipBadgesById}
+            onSelectPerson={handleSelectPerson}
+          />
+        )}
+        {activeTab === "graph" && graphStyle === "network" && (
+          <NetworkTreeCanvas
+            persons={persons}
+            partnerships={partnerships}
+            parentChildLinks={parentChildLinks}
+            claimedPersonId={claimedPersonId}
+            selectedPersonId={selectedPersonId}
             onSelectPerson={handleSelectPerson}
           />
         )}
